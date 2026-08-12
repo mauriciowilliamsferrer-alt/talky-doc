@@ -80,7 +80,9 @@ export function chunkForTTS(text: string, maxChars = 1800): string[] {
 
   for (const paragraph of paragraphs) {
     const pieces =
-      paragraph.length > maxChars ? (paragraph.match(/[^.!?]+[.!?]*\s*/g) ?? [paragraph]) : [paragraph];
+      paragraph.length > maxChars
+        ? (paragraph.match(/[^.!?]+[.!?]*\s*/g) ?? [paragraph])
+        : [paragraph];
 
     for (const piece of pieces) {
       if (piece.length > maxChars) {
@@ -91,8 +93,8 @@ export function chunkForTTS(text: string, maxChars = 1800): string[] {
       if (current.length + piece.length + 2 > maxChars) push();
       current += (current ? "\n" : "") + piece.trim();
     }
-    push();
   }
+
   push();
   return chunks.filter(Boolean);
 }
