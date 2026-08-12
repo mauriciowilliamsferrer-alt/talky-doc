@@ -31,10 +31,40 @@ export async function synthesizeChunk(text: string, voice: string, signal?: Abor
     } catch {
       /* resposta sem corpo JSON */
     }
-    throw new Error(message);
+    const error = new Error(message) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
   }
 
   return res.blob();
+}
+
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
+  });
+
+/** Gera um bloco, com backoff em caso de rate limit (429) ou falha temporária. */
+async function synthesizeWithRetry(text: string, voice: string, signal?: AbortSignal) {
+  const delays = [1500, 4000, 9000];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await synthesizeChunk(text, voice, signal);
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      const retryable = status === 429 || status === 500 || status === 502 || status === 503;
+      if (!retryable || attempt >= delays.length || signal?.aborted) throw error;
+      await sleep(delays[attempt]!, signal);
+    }
+  }
 }
 
 export async function synthesizeChunks(
@@ -45,8 +75,9 @@ export async function synthesizeChunks(
 ): Promise<Blob> {
   const parts: Blob[] = [];
   for (let i = 0; i < chunks.length; i++) {
-    parts.push(await synthesizeChunk(chunks[i] as string, voice, signal));
+    parts.push(await synthesizeWithRetry(chunks[i] as string, voice, signal));
     onProgress(i + 1, chunks.length);
   }
   return new Blob(parts, { type: "audio/mpeg" });
 }
+
