@@ -6,6 +6,8 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { chunkForTTS, estimateMinutes, extractPdfText, MAX_PDF_BYTES } from "@/lib/pdf-text";
 import { synthesizeChunks, VOICES } from "@/lib/tts-client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,6 +50,7 @@ function Index() {
   const [dragging, setDragging] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -61,12 +64,12 @@ function Index() {
   const handleFile = useCallback(
     async (file: File) => {
       if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-        toast.error("Arquivo inválido", { description: "Envie um arquivo no formato PDF." });
+        toast.error(t.invalidFile, { description: t.invalidFileDesc });
         return;
       }
       if (file.size > MAX_PDF_BYTES) {
-        toast.error("Arquivo muito grande", {
-          description: `O limite é de ${MAX_PDF_BYTES / 1024 / 1024}MB por PDF.`,
+        toast.error(t.tooLarge, {
+          description: t.tooLargeDesc(MAX_PDF_BYTES / 1024 / 1024),
         });
         return;
       }
@@ -82,10 +85,7 @@ function Index() {
         );
 
         if (result.charCount < 40) {
-          toast.error("Nenhum texto legível encontrado", {
-            description:
-              "Este PDF parece ser digitalizado (somente imagem). Nesta versão não há suporte a OCR.",
-          });
+          toast.error(t.noText, { description: t.noTextDesc });
           setStatus("idle");
           return;
         }
@@ -101,13 +101,11 @@ function Index() {
         setStatus("idle");
       } catch (error) {
         console.error(error);
-        toast.error("Não foi possível ler o PDF", {
-          description: "O arquivo pode estar corrompido ou protegido por senha.",
-        });
+        toast.error(t.readFail, { description: t.readFailDesc });
         setStatus("idle");
       }
     },
-    [resetAudio],
+    [resetAudio, t],
   );
 
   const generate = useCallback(async () => {
@@ -128,21 +126,21 @@ function Index() {
       );
       setAudioUrl(URL.createObjectURL(blob));
       setStatus("idle");
-      toast.success("Narração pronta");
+      toast.success(t.ready);
     } catch (error) {
       if (controller.signal.aborted) {
         setStatus("idle");
         return;
       }
       console.error(error);
-      toast.error("Erro na narração", {
-        description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+      toast.error(t.error, {
+        description: error instanceof Error ? error.message : t.errorDesc,
       });
       setStatus("idle");
     } finally {
       abortRef.current = null;
     }
-  }, [doc, voice, resetAudio]);
+  }, [doc, voice, resetAudio, t]);
 
   const busy = status !== "idle";
 
@@ -150,18 +148,20 @@ function Index() {
     <main className="paper-grain min-h-screen">
       <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
         <header className="mb-10">
+          <div className="mb-5 flex justify-end">
+            <LanguageToggle />
+          </div>
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            <Headphones className="size-3.5" /> PDF em voz alta
+            <Headphones className="size-3.5" /> {t.badge}
           </p>
-          <h1 className="display-xl text-balance">Ouça qualquer PDF com voz natural.</h1>
+          <h1 className="display-xl text-balance">{t.heroTitle}</h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">
-            Envie um documento com texto selecionável, escolha a voz e ouça no navegador — com
-            controles completos e download em MP3.
+            {t.heroSubtitle}
           </p>
         </header>
 
         <section
-          aria-label="Enviar PDF"
+          aria-label={t.uploadAria}
           onDragOver={(e) => {
             e.preventDefault();
             setDragging(true);
@@ -192,9 +192,9 @@ function Index() {
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
             <Upload className="size-5" />
           </div>
-          <p className="display-md">Arraste seu PDF aqui</p>
+          <p className="display-md">{t.dropTitle}</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Somente PDFs com texto selecionável · até {MAX_PDF_BYTES / 1024 / 1024}MB
+            {t.dropHint(MAX_PDF_BYTES / 1024 / 1024)}
           </p>
           <button
             type="button"
@@ -205,17 +205,16 @@ function Index() {
             {status === "extracting" ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Lendo página {extractProgress.done}
-                {extractProgress.total ? ` de ${extractProgress.total}` : ""}…
+                {t.readingPage(extractProgress.done, extractProgress.total)}
               </>
             ) : (
-              <>Escolher arquivo</>
+              <>{t.chooseFile}</>
             )}
           </button>
         </section>
 
         {doc && (
-          <section className="mt-6 space-y-6" aria-label="Documento carregado">
+          <section className="mt-6 space-y-6" aria-label={t.docAria}>
             <div className="glass rounded-3xl p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-start gap-3">
@@ -225,8 +224,7 @@ function Index() {
                   <div className="min-w-0">
                     <h2 className="truncate text-lg font-semibold">{doc.title}</h2>
                     <p className="text-sm text-muted-foreground">
-                      {doc.pages} página{doc.pages > 1 ? "s" : ""} · ~{doc.minutes} min de narração ·{" "}
-                      {doc.chunks.length} bloco{doc.chunks.length > 1 ? "s" : ""}
+                      {t.pages(doc.pages)} · {t.minutes(doc.minutes)} · {t.blocks(doc.chunks.length)}
                     </p>
                   </div>
                 </div>
@@ -237,7 +235,7 @@ function Index() {
                     resetAudio();
                     setDoc(null);
                   }}
-                  aria-label="Remover documento"
+                  aria-label={t.removeDoc}
                   className="rounded-full p-2 text-muted-foreground transition-transform duration-200 ease-out active:scale-90 hover:text-foreground"
                 >
                   <X className="size-4" />
@@ -246,7 +244,7 @@ function Index() {
 
               <div className="mt-5">
                 <label htmlFor="voice" className="text-sm font-medium">
-                  Voz da narração
+                  {t.voiceLabel}
                 </label>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3" id="voice" role="radiogroup">
                   {VOICES.map((v) => (
@@ -264,7 +262,7 @@ function Index() {
                       )}
                     >
                       <span className="block text-sm font-semibold">{v.name}</span>
-                      <span className="block text-xs text-muted-foreground">{v.note}</span>
+                      <span className="block text-xs text-muted-foreground">{t.voiceNotes[v.id] ?? v.note}</span>
                     </button>
                   ))}
                 </div>
@@ -279,12 +277,12 @@ function Index() {
                 {status === "generating" ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Gerando áudio · bloco {audioProgress.done} de {audioProgress.total}
+                    {t.generating(audioProgress.done, audioProgress.total)}
                   </>
                 ) : (
                   <>
                     <Sparkles className="size-4" />
-                    {audioUrl ? "Gerar novamente" : "Gerar narração"}
+                    {audioUrl ? t.regenerate : t.generate}
                   </>
                 )}
               </button>
@@ -297,7 +295,7 @@ function Index() {
                     aria-valuemin={0}
                     aria-valuemax={audioProgress.total}
                     aria-valuenow={audioProgress.done}
-                    aria-label="Progresso da geração de áudio"
+                    aria-label={t.progressAria}
                   >
                     <div
                       className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
@@ -311,7 +309,7 @@ function Index() {
                     onClick={() => abortRef.current?.abort()}
                     className="mt-3 text-xs font-medium text-muted-foreground underline underline-offset-4"
                   >
-                    Cancelar geração
+                    {t.cancel}
                   </button>
                 </div>
               )}
@@ -320,7 +318,7 @@ function Index() {
             {audioUrl && <AudioPlayer src={audioUrl} fileName={doc.title} />}
 
             <details className="glass rounded-3xl p-6">
-              <summary className="cursor-pointer text-sm font-semibold">Texto extraído</summary>
+              <summary className="cursor-pointer text-sm font-semibold">{t.extractedText}</summary>
               <div className="mt-4 max-h-80 overflow-y-auto pr-2 text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
                 {doc.text}
               </div>
