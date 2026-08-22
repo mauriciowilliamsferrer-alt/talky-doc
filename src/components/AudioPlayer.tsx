@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Pause, Play, RotateCcw, RotateCw } from "lucide-react";
 import { SPEEDS } from "@/lib/tts-client";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function formatTime(seconds: number) {
@@ -21,6 +22,7 @@ export function AudioPlayer({ src, fileName }: Props) {
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const { t } = useI18n();
 
   useEffect(() => {
     setPlaying(false);
@@ -52,7 +54,7 @@ export function AudioPlayer({ src, fileName }: Props) {
   const progress = duration > 0 ? (current / duration) * 100 : 0;
 
   return (
-    <section className="glass rounded-3xl p-5 sm:p-6" aria-label="Player de narração">
+    <section className="glass rounded-3xl p-5 sm:p-6" aria-label={t.playerAria}>
       <audio
         ref={audioRef}
         src={src}
@@ -69,7 +71,7 @@ export function AudioPlayer({ src, fileName }: Props) {
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? "Pausar narração" : "Reproduzir narração"}
+          aria-label={playing ? t.pause : t.play}
           className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_10px_30px_-12px_oklch(0.5_0.16_42/0.9)] transition-transform duration-200 ease-out active:scale-[0.93] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {playing ? <Pause className="size-6" /> : <Play className="ml-0.5 size-6" />}
@@ -90,7 +92,7 @@ export function AudioPlayer({ src, fileName }: Props) {
               max={duration || 0}
               step={0.1}
               value={current}
-              aria-label="Posição da narração"
+              aria-label={t.seekAria}
               onChange={(e) => {
                 const value = Number(e.target.value);
                 setCurrent(value);
@@ -111,7 +113,7 @@ export function AudioPlayer({ src, fileName }: Props) {
           <button
             type="button"
             onClick={() => skip(-15)}
-            aria-label="Retroceder 15 segundos"
+            aria-label={t.back15}
             className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium transition-transform duration-200 ease-out active:scale-95"
           >
             <RotateCcw className="size-4" /> 15s
@@ -119,7 +121,7 @@ export function AudioPlayer({ src, fileName }: Props) {
           <button
             type="button"
             onClick={() => skip(15)}
-            aria-label="Avançar 15 segundos"
+            aria-label={t.fwd15}
             className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium transition-transform duration-200 ease-out active:scale-95"
           >
             15s <RotateCw className="size-4" />
@@ -129,7 +131,7 @@ export function AudioPlayer({ src, fileName }: Props) {
         <div
           className="flex items-center gap-1 rounded-full bg-secondary p-1"
           role="group"
-          aria-label="Velocidade de reprodução"
+          aria-label={t.speedAria}
         >
           {SPEEDS.map((value) => (
             <button
@@ -154,7 +156,7 @@ export function AudioPlayer({ src, fileName }: Props) {
           download={`${fileName}.mp3`}
           className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-transform duration-200 ease-out active:scale-95"
         >
-          <Download className="size-4" /> Baixar MP3
+          <Download className="size-4" /> {t.download}
         </a>
       </div>
     </section>
