@@ -88,7 +88,24 @@ function Index() {
   const [dragging, setDragging] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+
+  // URL search param wins on first load, then the URL follows the toggle.
+  const appliedUrlLang = useRef(false);
+  useEffect(() => {
+    if (!appliedUrlLang.current) {
+      appliedUrlLang.current = true;
+      if (search.lang && search.lang !== lang) {
+        setLang(search.lang);
+        return;
+      }
+    }
+    if (search.lang !== lang) {
+      void navigate({ search: lang === "pt" ? {} : { lang }, replace: true });
+    }
+  }, [search.lang, lang, setLang, navigate]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
