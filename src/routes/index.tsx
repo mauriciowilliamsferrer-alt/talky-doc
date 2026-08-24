@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Headphones, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
@@ -6,29 +6,67 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { chunkForTTS, estimateMinutes, extractPdfText, MAX_PDF_BYTES } from "@/lib/pdf-text";
 import { synthesizeChunks, VOICES } from "@/lib/tts-client";
 import { cn } from "@/lib/utils";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 
+const SITE_URL = "https://talky-doc.lovable.app";
+
+const COPY = {
+  pt: {
+    title: "Leitor de PDF em Voz Alta | Ouça seus documentos",
+    description:
+      "Envie um PDF e ouça o conteúdo narrado com voz natural no navegador: controles de reprodução, escolha de voz, velocidade e download em MP3.",
+    ogTitle: "Leitor de PDF em Voz Alta",
+    ogDescription:
+      "Transforme qualquer PDF com texto em narração natural e baixe o áudio em MP3.",
+  },
+  en: {
+    title: "PDF Voice Reader | Listen to your documents",
+    description:
+      "Upload a PDF and listen to it narrated with a natural voice in your browser: playback controls, voice picker, speed and MP3 download.",
+    ogTitle: "PDF Voice Reader",
+    ogDescription: "Turn any text-based PDF into natural narration and download the MP3.",
+  },
+} as const;
+
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Leitor de PDF em Voz Alta | Ouça seus documentos" },
-      {
-        name: "description",
-        content:
-          "Envie um PDF e ouça o conteúdo narrado com voz natural no navegador: controles de reprodução, escolha de voz, velocidade e download em MP3.",
-      },
-      { property: "og:title", content: "Leitor de PDF em Voz Alta" },
-      {
-        property: "og:description",
-        content: "Transforme qualquer PDF com texto em narração natural e baixe o áudio em MP3.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  validateSearch: (search: Record<string, unknown>): { lang?: Lang } => {
+    const lang = search["lang"];
+    return lang === "pt" || lang === "en" ? { lang } : {};
+  },
+  loaderDeps: ({ search }) => ({ lang: search.lang }),
+  loader: ({ deps }) => ({ lang: deps.lang ?? ("pt" as Lang) }),
+  head: ({ loaderData }) => {
+    const lang: Lang = loaderData?.lang ?? "pt";
+    const copy = COPY[lang];
+    const url = lang === "pt" ? `${SITE_URL}/` : `${SITE_URL}/?lang=en`;
+
+    return {
+      meta: [
+        { title: copy.title },
+        { name: "description", content: copy.description },
+        { property: "og:title", content: copy.ogTitle },
+        { property: "og:description", content: copy.ogDescription },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { property: "og:locale", content: lang === "pt" ? "pt_BR" : "en_US" },
+        {
+          property: "og:locale:alternate",
+          content: lang === "pt" ? "en_US" : "pt_BR",
+        },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+      links: [
+        { rel: "canonical", href: url },
+        { rel: "alternate", hrefLang: "pt-BR", href: `${SITE_URL}/` },
+        { rel: "alternate", hrefLang: "en", href: `${SITE_URL}/?lang=en` },
+        { rel: "alternate", hrefLang: "x-default", href: `${SITE_URL}/` },
+      ],
+    };
+  },
   component: Index,
 });
+
 
 type Doc = {
   title: string;
@@ -50,7 +88,24 @@ function Index() {
   const [dragging, setDragging] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+
+  // URL search param wins on first load, then the URL follows the toggle.
+  const appliedUrlLang = useRef(false);
+  useEffect(() => {
+    if (!appliedUrlLang.current) {
+      appliedUrlLang.current = true;
+      if (search.lang && search.lang !== lang) {
+        setLang(search.lang);
+        return;
+      }
+    }
+    if (search.lang !== lang) {
+      void navigate({ search: lang === "pt" ? {} : { lang }, replace: true });
+    }
+  }, [search.lang, lang, setLang, navigate]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
