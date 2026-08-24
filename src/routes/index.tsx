@@ -6,7 +6,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { chunkForTTS, estimateMinutes, extractPdfText, MAX_PDF_BYTES } from "@/lib/pdf-text";
 import { synthesizeChunks, VOICES } from "@/lib/tts-client";
 import { cn } from "@/lib/utils";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 
 const SITE_URL = "https://talky-doc.lovable.app";
