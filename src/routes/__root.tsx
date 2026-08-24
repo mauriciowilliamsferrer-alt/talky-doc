@@ -4,10 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
+import { RootShell } from "@/components/RootShell";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
@@ -108,23 +106,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  const search = useRouterState({ select: (s) => s.location.search as { lang?: string } });
-  const htmlLang = search?.lang === "en" ? "en" : "pt-BR";
-
-  return (
-    <html lang={htmlLang} suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
