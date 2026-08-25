@@ -4,6 +4,7 @@ import pkg from "../../package.json";
 export type Lang = "pt" | "en";
 
 const DEFAULT_LANG: Lang = "pt";
+const manifest = pkg as { name: string; version?: string };
 
 function resolveLanguage(request: Request): Lang {
   const url = new URL(request.url);
@@ -29,8 +30,8 @@ export const Route = createFileRoute("/health")({
         return Response.json(
           {
             status: "ok",
-            service: pkg.name,
-            version: pkg.version,
+            service: manifest.name,
+            version: manifest.version ?? "0.0.0",
             build: {
               environment: process.env["NODE_ENV"] ?? (isProd ? "production" : isDev ? "development" : "unknown"),
               production: isProd,
@@ -49,3 +50,4 @@ export const Route = createFileRoute("/health")({
     },
   },
 });
+
