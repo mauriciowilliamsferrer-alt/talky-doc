@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#1a1a1a"/>
+  <!-- Document body -->
+  <rect x="140" y="110" width="200" height="260" rx="16" fill="#ffffff" opacity="0.15"/>
+  <rect x="152" y="122" width="176" height="236" rx="10" fill="#ffffff" opacity="0.9"/>
+  <!-- Fold corner -->
+  <path d="M296 122 L328 154 L296 154 Z" fill="#1a1a1a" opacity="0.25"/>
+  <path d="M296 122 L328 154 L296 154 Z" fill="#e5e5e5"/>
+  <!-- Lines on document -->
+  <rect x="172" y="180" width="136" height="8" rx="4" fill="#1a1a1a" opacity="0.25"/>
+  <rect x="172" y="204" width="110" height="8" rx="4" fill="#1a1a1a" opacity="0.20"/>
+  <rect x="172" y="228" width="120" height="8" rx="4" fill="#1a1a1a" opacity="0.20"/>
+  <rect x="172" y="252" width="90" height="8" rx="4" fill="#1a1a1a" opacity="0.15"/>
+  <!-- Scan viewfinder corners (bottom-right, accent) -->
+  <g stroke="#4ade80" stroke-width="14" stroke-linecap="round" fill="none">
+    <!-- top-left corner -->
+    <polyline points="290,320 254,320 254,356"/>
+    <!-- bottom-right corner -->
+    <polyline points="290,392 326,392 326,356"/>
+  </g>
+</svg>

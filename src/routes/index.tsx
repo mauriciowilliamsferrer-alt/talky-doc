@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Headphones, Loader2, Sparkles, Upload, X } from "lucide-react";
+import { FileText, Headphones, Loader2, ScanLine, Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { chunkForTTS, estimateMinutes, extractPdfText, MAX_PDF_BYTES } from "@/lib/pdf-text";
@@ -203,7 +203,14 @@ function Index() {
     <main className="paper-grain min-h-screen">
       <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
         <header className="mb-10">
-          <div className="mb-5 flex justify-end">
+          <div className="mb-5 flex items-center justify-between">
+            <Link
+              to="/docs"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ScanLine className="size-3.5" />
+              DocScan
+            </Link>
             <LanguageToggle />
           </div>
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">

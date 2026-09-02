@@ -1,0 +1,43 @@
+{
+  "name": "DocScan — Digitalizador de Documentos",
+  "short_name": "DocScan",
+  "description": "Digitalize documentos com a câmera, organize em PDF e armazene na nuvem — sem anúncios.",
+  "start_url": "/docs",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a1a",
+  "categories": ["productivity", "utilities"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo documento",
+      "short_name": "Escanear",
+      "description": "Inicia uma nova captura de documento",
+      "url": "/scan",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Meus documentos",
+      "short_name": "Documentos",
+      "description": "Abre a biblioteca de documentos",
+      "url": "/docs",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
