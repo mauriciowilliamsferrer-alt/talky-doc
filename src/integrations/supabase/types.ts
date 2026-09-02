@@ -14,7 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      document_pages: {
+        Row: {
+          created_at: string
+          document_id: string
+          height: number
+          id: string
+          position: number
+          storage_path: string
+          user_id: string
+          width: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          height?: number
+          id?: string
+          position?: number
+          storage_path: string
+          user_id: string
+          width?: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          height?: number
+          id?: string
+          position?: number
+          storage_path?: string
+          user_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pages_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
