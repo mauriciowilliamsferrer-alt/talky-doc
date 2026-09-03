@@ -120,6 +120,14 @@ function DocsPage() {
           <h1 className="text-base font-semibold text-foreground">DocScan</h1>
           <div className="flex items-center gap-2">
             <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Headphones className="h-4 w-4" />
+              <span className="hidden sm:inline">Leitor PDF</span>
+            </Link>
+
+            <Link
               to="/scan"
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
