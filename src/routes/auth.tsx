@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "signup" | "forgot" | "reset";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -29,17 +29,19 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Listen for auth changes (e.g. magic link callback)
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      } else if (event === "SIGNED_IN" && mode !== "reset") {
         void navigate({ to: "/docs" });
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +60,18 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Confirme seu e-mail para ativar a conta.");
         setMode("login");
-      } else {
+      } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth`,
         });
         if (error) throw error;
         toast.success("Link de redefinição enviado para seu e-mail.");
         setMode("login");
+      } else {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        toast.success("Senha atualizada com sucesso!");
+        void navigate({ to: "/docs" });
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
@@ -78,6 +85,7 @@ function AuthPage() {
     login: "Entrar",
     signup: "Criar conta",
     forgot: "Redefinir senha",
+    reset: "Nova senha",
   };
 
   if (!ready) return null;
@@ -115,7 +123,7 @@ function AuthPage() {
               />
             </div>
 
-            {mode !== "forgot" && (
+            {mode !== "forgot" && mode !== "reset" && (
               <div className="space-y-1.5">
                 <label htmlFor="password" className="text-sm font-medium text-foreground">
                   Senha
@@ -130,6 +138,25 @@ function AuthPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                   placeholder="••••••••"
+                />
+              </div>
+            )}
+
+            {mode === "reset" && (
+              <div className="space-y-1.5">
+                <label htmlFor="new-password" className="text-sm font-medium text-foreground">
+                  Nova senha
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+                  placeholder="Mínimo 6 caracteres"
                 />
               </div>
             )}
