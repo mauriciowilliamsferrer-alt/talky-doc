@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { ScanIcon } from "lucide-react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 
@@ -80,15 +79,11 @@ function AuthPage() {
   const handleGoogle = async () => {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth`,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth` },
       });
-      if (result.error) {
-        toast.error(result.error.message || "Falha ao entrar com Google");
-        return;
-      }
-      if (result.redirected) return;
-      void navigate({ to: "/docs" });
+      if (error) toast.error(error.message || "Falha ao entrar com Google");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Falha ao entrar com Google");
     } finally {
