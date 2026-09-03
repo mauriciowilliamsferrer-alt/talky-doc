@@ -75,6 +75,8 @@ function AuthPage() {
     }
   };
 
+  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
+
   const handleGoogle = async () => {
     setBusy(true);
     try {
@@ -173,8 +175,9 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => void handleGoogle()}
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+                disabled={busy || isLocalhost}
+                title={isLocalhost ? "Google OAuth não funciona em localhost — use e-mail/senha" : undefined}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z" />
@@ -184,6 +187,11 @@ function AuthPage() {
                 </svg>
                 Continuar com Google
               </button>
+              {isLocalhost && (
+                <p className="mt-1.5 text-center text-xs text-muted-foreground">
+                  Google OAuth só funciona em produção. Use e-mail/senha para testar localmente.
+                </p>
+              )}
             </>
           )}
 
