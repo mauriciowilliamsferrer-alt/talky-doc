@@ -16,6 +16,17 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/docs")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Meus documentos — DocScan" },
+      { name: "description", content: "Sua biblioteca de documentos digitalizados: busque, renomeie, exporte em PDF e organize tudo em um só lugar." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Meus documentos — DocScan" },
+      { property: "og:description", content: "Sua biblioteca de documentos digitalizados: busque, renomeie, exporte em PDF e organize tudo em um só lugar." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });

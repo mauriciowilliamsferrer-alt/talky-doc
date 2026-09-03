@@ -7,6 +7,17 @@ import { ScanIcon } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Entrar no DocScan — Scanner de Documentos" },
+      { name: "description", content: "Acesse sua conta DocScan para digitalizar, organizar e exportar documentos em PDF direto do navegador." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Entrar no DocScan — Scanner de Documentos" },
+      { property: "og:description", content: "Acesse sua conta DocScan para digitalizar, organizar e exportar documentos em PDF direto do navegador." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (data.user) throw redirect({ to: "/docs" });
