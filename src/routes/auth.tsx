@@ -74,23 +74,6 @@ function AuthPage() {
     }
   };
 
-  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
-
-  const handleGoogle = async () => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth` },
-      });
-      if (error) toast.error(error.message || "Falha ao entrar com Google");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Falha ao entrar com Google");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const labels: Record<Mode, string> = {
     login: "Entrar",
     signup: "Criar conta",
@@ -159,36 +142,6 @@ function AuthPage() {
               {busy ? "Aguarde…" : labels[mode]}
             </button>
           </form>
-
-          {mode !== "forgot" && (
-            <>
-              <div className="my-5 flex items-center gap-3">
-                <span className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted-foreground">ou</span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleGoogle()}
-                disabled={busy || isLocalhost}
-                title={isLocalhost ? "Google OAuth não funciona em localhost — use e-mail/senha" : undefined}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z" />
-                  <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.700-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24Z" />
-                  <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1Z" />
-                  <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z" />
-                </svg>
-                Continuar com Google
-              </button>
-              {isLocalhost && (
-                <p className="mt-1.5 text-center text-xs text-muted-foreground">
-                  Google OAuth só funciona em produção. Use e-mail/senha para testar localmente.
-                </p>
-              )}
-            </>
-          )}
 
           {/* Mode switchers */}
           <div className="mt-5 flex flex-col items-center gap-1.5 text-sm">
