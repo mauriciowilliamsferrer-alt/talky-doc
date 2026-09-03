@@ -64,8 +64,24 @@ function AuthPage() {
     }
   };
 
-  // Google OAuth desabilitado até configurar Client ID/Secret no painel do Supabase.
-  // Para habilitar: Authentication → Providers → Google no dashboard do Supabase.
+  const handleGoogle = async () => {
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error(result.error.message || "Falha ao entrar com Google");
+        return;
+      }
+      if (result.redirected) return;
+      void navigate({ to: "/docs" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Falha ao entrar com Google");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const labels: Record<Mode, string> = {
     login: "Entrar",
