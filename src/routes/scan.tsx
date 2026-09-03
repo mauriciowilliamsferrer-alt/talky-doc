@@ -8,6 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/scan")({
   ssr: false,
+  head: () => ({
+    meta: [
+      { title: "Digitalizar documento — DocScan" },
+      { name: "description", content: "Capture páginas pela câmera, ajuste o recorte, aplique filtros e salve tudo como um documento multipágina." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Digitalizar documento — DocScan" },
+      { property: "og:description", content: "Capture páginas pela câmera, ajuste o recorte, aplique filtros e salve tudo como um documento multipágina." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
