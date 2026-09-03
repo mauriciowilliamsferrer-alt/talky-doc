@@ -6,6 +6,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { ScanIcon } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (data.user) throw redirect({ to: "/docs" });
@@ -69,7 +70,7 @@ function AuthPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth`,
       });
       if (result.error) {
         toast.error(result.error.message || "Falha ao entrar com Google");

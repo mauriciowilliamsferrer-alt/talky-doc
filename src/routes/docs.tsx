@@ -15,6 +15,7 @@ import { listDocuments, renameDocument, deleteDocument, type ScanDocument } from
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/docs")({
+  ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
