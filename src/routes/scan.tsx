@@ -1,7 +1,7 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, FileText, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Headphones, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { CaptureFlow, type CapturedPage } from "@/components/scan/CaptureFlow";
 import { createDocument } from "@/lib/scan/docs";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,6 +96,13 @@ function ScanPage() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {saving ? "Salvando…" : "Salvar"}
         </button>
+        <Link
+          to="/"
+          aria-label="Leitor PDF"
+          className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <Headphones className="h-4 w-4" />
+        </Link>
       </header>
 
       {/* Page thumbnails */}

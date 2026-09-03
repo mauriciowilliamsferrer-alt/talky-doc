@@ -3,13 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   FileText,
+  Headphones,
   Loader2,
+  LogOut,
   MoreVertical,
   Pencil,
   Plus,
   Search,
   Trash2,
-  LogOut,
 } from "lucide-react";
 import { listDocuments, renameDocument, deleteDocument, type ScanDocument } from "@/lib/scan/docs";
 import { supabase } from "@/integrations/supabase/client";

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -6,6 +6,7 @@ import {
   Download,
   FileText,
   GripVertical,
+  Headphones,
   Loader2,
   MoreVertical,
   Pencil,
@@ -267,6 +268,13 @@ function DocPage() {
             onImages={exportImages}
             exporting={exporting}
           />
+          <Link
+            to="/"
+            aria-label="Leitor PDF"
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Headphones className="h-4 w-4" />
+          </Link>
         </div>
       </header>
 
