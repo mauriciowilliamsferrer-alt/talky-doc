@@ -222,6 +222,29 @@ function Index() {
           </p>
         </header>
 
+        {/* DocScan promo banner */}
+        <Link
+          to="/docs"
+          className="glass mb-8 flex items-center gap-4 rounded-2xl p-4 transition-transform duration-200 ease-out hover:scale-[1.01] active:scale-[0.99]"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <ScanLine className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {lang === "pt" ? "🆕 Novo: DocScan" : "🆕 New: DocScan"}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {lang === "pt"
+                ? "Digitalize documentos com a câmera e exporte em PDF — sem anúncios."
+                : "Scan documents with your camera and export as PDF — no ads."}
+            </p>
+          </div>
+          <span className="shrink-0 text-xs font-medium text-primary">
+            {lang === "pt" ? "Experimentar →" : "Try it →"}
+          </span>
+        </Link>
+
         <section
           aria-label={t.uploadAria}
           onDragOver={(e) => {
