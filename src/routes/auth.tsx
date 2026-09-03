@@ -1,9 +1,10 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { ScanIcon } from "lucide-react";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -18,10 +19,6 @@ export const Route = createFileRoute("/auth")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) throw redirect({ to: "/docs" });
-  },
   component: AuthPage,
 });
 
@@ -29,6 +26,7 @@ type Mode = "login" | "signup" | "forgot";
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { ready } = useAuthGuard({ requireGuest: true });
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -101,6 +99,8 @@ function AuthPage() {
     signup: "Criar conta",
     forgot: "Redefinir senha",
   };
+
+  if (!ready) return null;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">

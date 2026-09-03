@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { listDocuments, renameDocument, deleteDocument, type ScanDocument } from "@/lib/scan/docs";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export const Route = createFileRoute("/docs")({
   ssr: false,
@@ -28,10 +29,6 @@ export const Route = createFileRoute("/docs")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
-  },
   component: DocsPage,
 });
 
@@ -45,6 +42,7 @@ function formatDate(iso: string) {
 
 function DocsPage() {
   const navigate = useNavigate();
+  const { ready } = useAuthGuard();
   const [docs, setDocs] = useState<ScanDocument[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -112,6 +110,8 @@ function DocsPage() {
     await supabase.auth.signOut();
     void navigate({ to: "/auth" });
   };
+
+  if (!ready) return null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

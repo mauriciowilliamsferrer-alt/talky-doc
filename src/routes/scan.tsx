@@ -1,10 +1,10 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, FileText, Headphones, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { CaptureFlow, type CapturedPage } from "@/components/scan/CaptureFlow";
 import { createDocument } from "@/lib/scan/docs";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export const Route = createFileRoute("/scan")({
   ssr: false,
@@ -19,15 +19,12 @@ export const Route = createFileRoute("/scan")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
-  },
   component: ScanPage,
 });
 
 function ScanPage() {
   const navigate = useNavigate();
+  const { ready } = useAuthGuard();
   const [pages, setPages] = useState<CapturedPage[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,6 +63,8 @@ function ScanPage() {
       setSaving(false);
     }
   };
+
+  if (!ready) return null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -27,7 +27,7 @@ import {
 import { buildPdf, shareOrDownload, safeFileName } from "@/lib/scan/export";
 import { rotateCanvas, loadImageToCanvas, canvasToJpeg } from "@/lib/scan/image";
 import { CaptureFlow, type CapturedPage } from "@/components/scan/CaptureFlow";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 export const Route = createFileRoute("/doc/$id")({
   ssr: false,
@@ -42,16 +42,13 @@ export const Route = createFileRoute("/doc/$id")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
-  },
   component: DocPage,
 });
 
 function DocPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { ready } = useAuthGuard();
 
   const [docName, setDocName] = useState("");
   const [pages, setPages] = useState<ScanPage[]>([]);
@@ -212,7 +209,7 @@ function DocPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (!ready || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
