@@ -147,7 +147,7 @@ function AuthPage() {
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -166,12 +166,12 @@ function AuthPage() {
                   id="new-password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                 />
               </div>
             )}
