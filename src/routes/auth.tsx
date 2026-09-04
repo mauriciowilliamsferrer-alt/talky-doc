@@ -74,7 +74,22 @@ function AuthPage() {
         void navigate({ to: "/docs" });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      const raw = err instanceof Error ? err.message : "Erro desconhecido";
+      const lower = raw.toLowerCase();
+      let msg = raw;
+      if (lower.includes("weak") || lower.includes("pwned") || lower.includes("easy to guess")) {
+        msg = "Essa senha é muito comum e já apareceu em vazamentos. Escolha uma senha mais forte (8+ caracteres, misture letras, números e símbolos).";
+      } else if (lower.includes("invalid login credentials")) {
+        msg = "E-mail ou senha incorretos. Se você acabou de criar a conta, confirme o e-mail antes de entrar.";
+      } else if (lower.includes("already registered") || lower.includes("user already")) {
+        msg = "Já existe uma conta com esse e-mail. Tente entrar ou redefinir a senha.";
+      } else if (lower.includes("email not confirmed")) {
+        msg = "Confirme o e-mail que enviamos antes de entrar.";
+      } else if (lower.includes("rate limit") || lower.includes("too many")) {
+        msg = "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+      } else if (lower.includes("should be at least")) {
+        msg = "A senha precisa ter pelo menos 8 caracteres.";
+      }
       toast.error(msg);
     } finally {
       setBusy(false);
@@ -132,13 +147,18 @@ function AuthPage() {
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                   placeholder="••••••••"
                 />
+                {mode === "signup" && (
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo 8 caracteres. Evite senhas comuns como “123456” ou “senha123”.
+                  </p>
+                )}
               </div>
             )}
 
@@ -151,12 +171,12 @@ function AuthPage() {
                   id="new-password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                 />
               </div>
             )}
