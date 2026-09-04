@@ -74,7 +74,22 @@ function AuthPage() {
         void navigate({ to: "/docs" });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      const raw = err instanceof Error ? err.message : "Erro desconhecido";
+      const lower = raw.toLowerCase();
+      let msg = raw;
+      if (lower.includes("weak") || lower.includes("pwned") || lower.includes("easy to guess")) {
+        msg = "Essa senha é muito comum e já apareceu em vazamentos. Escolha uma senha mais forte (8+ caracteres, misture letras, números e símbolos).";
+      } else if (lower.includes("invalid login credentials")) {
+        msg = "E-mail ou senha incorretos. Se você acabou de criar a conta, confirme o e-mail antes de entrar.";
+      } else if (lower.includes("already registered") || lower.includes("user already")) {
+        msg = "Já existe uma conta com esse e-mail. Tente entrar ou redefinir a senha.";
+      } else if (lower.includes("email not confirmed")) {
+        msg = "Confirme o e-mail que enviamos antes de entrar.";
+      } else if (lower.includes("rate limit") || lower.includes("too many")) {
+        msg = "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+      } else if (lower.includes("should be at least")) {
+        msg = "A senha precisa ter pelo menos 8 caracteres.";
+      }
       toast.error(msg);
     } finally {
       setBusy(false);
