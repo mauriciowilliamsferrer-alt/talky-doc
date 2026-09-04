@@ -154,6 +154,11 @@ function AuthPage() {
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
                   placeholder="••••••••"
                 />
+                {mode === "signup" && (
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo 8 caracteres. Evite senhas comuns como “123456” ou “senha123”.
+                  </p>
+                )}
               </div>
             )}
 
