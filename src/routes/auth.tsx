@@ -52,14 +52,19 @@ function AuthPage() {
         if (error) throw error;
         void navigate({ to: "/docs" });
       } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/auth` },
         });
         if (error) throw error;
-        toast.success("Confirme seu e-mail para ativar a conta.");
-        setMode("login");
+        if (data.session) {
+          toast.success("Conta criada com sucesso!");
+          void navigate({ to: "/docs" });
+        } else {
+          toast.success("Confirme seu e-mail para ativar a conta.");
+          setMode("login");
+        }
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth`,
