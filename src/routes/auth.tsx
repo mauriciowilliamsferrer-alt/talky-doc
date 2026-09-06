@@ -61,8 +61,11 @@ function AuthPage() {
         if (data.session) {
           toast.success("Conta criada com sucesso!");
           void navigate({ to: "/docs" });
+        } else if (data.user?.identities?.length === 0) {
+          toast.info("Este e-mail já tem uma conta. Entre com sua senha ou use ‘Esqueci minha senha’.");
+          setMode("login");
         } else {
-          toast.success("Confirme seu e-mail para ativar a conta.");
+          toast.info("Conta registrada. Tente entrar; se não conseguir, use ‘Esqueci minha senha’.");
           setMode("login");
         }
       } else if (mode === "forgot") {
