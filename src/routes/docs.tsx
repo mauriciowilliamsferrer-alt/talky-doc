@@ -263,6 +263,24 @@ function DocsPage() {
                   </div>
                 </Link>
 
+                {/* Download button (always visible) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDownload(doc);
+                  }}
+                  disabled={downloadingId === doc.id}
+                  aria-label={`Baixar ${doc.name} em PDF`}
+                  className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  {downloadingId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </button>
+
                 {/* Context menu button */}
                 <button
                   type="button"
@@ -279,9 +297,16 @@ function DocsPage() {
                 {/* Dropdown */}
                 {menuId === doc.id && (
                   <div
-                    className="absolute right-3 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+                    className="absolute right-3 top-full z-20 mt-1 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
                     onMouseLeave={() => setMenuId(null)}
                   >
+                    <button
+                      type="button"
+                      onClick={() => void handleDownload(doc)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent"
+                    >
+                      <Download className="h-4 w-4" /> Baixar PDF
+                    </button>
                     <button
                       type="button"
                       onClick={() => startRename(doc)}
@@ -289,6 +314,7 @@ function DocsPage() {
                     >
                       <Pencil className="h-4 w-4" /> Renomear
                     </button>
+
                     <button
                       type="button"
                       onClick={() => void handleDelete(doc.id)}
