@@ -16,6 +16,7 @@ import {
   RotateCcw,
   RotateCw,
   Share2,
+  ScanText,
   Trash2,
   X,
   ZoomIn,
@@ -29,6 +30,7 @@ import {
   reorderPages,
   renameDocument,
   replacePageImage,
+  updatePageOcrText,
   type ScanPage,
 } from "@/lib/scan/docs";
 import { buildPdf, shareOrDownload, safeFileName } from "@/lib/scan/export";
@@ -174,16 +176,42 @@ function DocPage() {
       setSavingPage(true);
       try {
         const startAt = pages.length;
-        await addPages(id, [{ blob: page.blob, width: page.width, height: page.height }], startAt);
+        await addPages(id, [{ blob: page.blob, width: page.width, height: page.height, ocrText: page.ocrText }], startAt);
         URL.revokeObjectURL(page.previewUrl);
-        await load();
+        const savedDoc = await getDocument(id);
+        if (savedDoc) {
+          setPages(savedDoc.pages);
+          setDocName(savedDoc.name);
+          // If OCR was still running when we saved, update the DB once it resolves
+          if (page.ocrText === null) {
+            const newPage = savedDoc.pages[startAt];
+            if (newPage) {
+              // page.ocrText is mutated in-place by CaptureFlow once OCR finishes
+              const waitForOcr = async () => {
+                // poll every 500ms until ocrText is populated (max 30s)
+                for (let i = 0; i < 60; i++) {
+                  await new Promise((r) => setTimeout(r, 500));
+                  if (page.ocrText !== null) {
+                    await updatePageOcrText(newPage.id, page.ocrText).catch(() => {});
+                    // update local state too
+                    setPages((prev) =>
+                      prev.map((p) => (p.id === newPage.id ? { ...p, ocrText: page.ocrText } : p)),
+                    );
+                    return;
+                  }
+                }
+              };
+              void waitForOcr();
+            }
+          }
+        }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Falha ao adicionar página.");
       } finally {
         setSavingPage(false);
       }
     },
-    [id, pages.length, load],
+    [id, pages.length],
   );
 
   // ── Drag-to-reorder ──────────────────────────────────────────────────────────
@@ -456,6 +484,11 @@ function DocPage() {
             ))}
           </div>
           </div>
+
+          {/* OCR text panel — collapsible, shows extracted text from all pages */}
+          {pages.some((p) => p.ocrText) && (
+            <OcrTextPanel pages={pages} />
+          )}
         )}
       </main>
 
@@ -505,6 +538,53 @@ function DocPage() {
           onClose={() => setLightbox(null)}
           onChange={(index, zoom, rotate) => setLightbox({ index, zoom, rotate })}
         />
+      )}
+    </div>
+  );
+}
+
+// ── OCR Text Panel ────────────────────────────────────────────────────────────
+
+function OcrTextPanel({ pages }: { pages: ScanPage[] }) {
+  const [open, setOpen] = useState(false);
+
+  const fullText = pages
+    .filter((p) => p.ocrText)
+    .map((p, i) => `— Página ${i + 1} —\n${p.ocrText}`)
+    .join("\n\n");
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent"
+      >
+        <div className="flex items-center gap-2">
+          <ScanText className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Texto extraído (OCR)</span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            {pages.filter((p) => p.ocrText).length}/{pages.length} pág.
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">{open ? "Ocultar ▲" : "Ver texto ▼"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-border px-4 py-4">
+          <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+            {fullText}
+          </pre>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(fullText);
+              toast.success("Texto copiado!");
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            Copiar texto
+          </button>
+        </div>
       )}
     </div>
   );

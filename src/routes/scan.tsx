@@ -57,7 +57,7 @@ function ScanPage() {
     setSaving(true);
     try {
       const name = docName.trim() || placeholder;
-      const newPages = pages.map((p) => ({ blob: p.blob, width: p.width, height: p.height }));
+      const newPages = pages.map((p) => ({ blob: p.blob, width: p.width, height: p.height, ocrText: p.ocrText }));
       const id = await createDocument(name, newPages);
       // revoke object URLs
       pages.forEach((p) => URL.revokeObjectURL(p.previewUrl));

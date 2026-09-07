@@ -8,6 +8,7 @@ export type ScanPage = {
   width: number;
   height: number;
   url: string;
+  ocrText: string | null;
 };
 
 export type ScanDocument = {
@@ -41,16 +42,49 @@ export async function listDocumentIds(): Promise<{ id: string; name: string }[]>
 }
 
 export async function listDocuments(search = ""): Promise<ScanDocument[]> {
+  const term = search.trim();
   let query = supabase
     .from("documents")
     .select("id, name, updated_at, document_pages(id, position, storage_path)")
     .order("updated_at", { ascending: false });
-  if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
-  const { data, error } = await query;
+
+  if (term) {
+    // Search by document name OR by OCR text on any of its pages.
+    // The page-level match bubbles up via the join: if any page matches,
+    // the document row is included. Supabase PostgREST exposes this as an
+    // `or` filter on the related table using the `!inner` hint when needed;
+    // here we rely on the separate page query below for the OCR branch.
+    query = query.ilike("name", `%${term}%`);
+  }
+
+  const { data: nameMatches, error } = await query;
   if (error) throw error;
 
+  // If searching, also find documents whose pages contain the term in ocr_text,
+  // then merge the two result sets (deduplicated by id).
+  let allDocs = nameMatches ?? [];
+  if (term) {
+    const { data: pageMatches } = await supabase
+      .from("document_pages")
+      .select("document_id")
+      .ilike("ocr_text", `%${term}%`);
+
+    const ocrDocIds = new Set((pageMatches ?? []).map((p) => p.document_id));
+    const nameMatchIds = new Set(allDocs.map((d) => d.id));
+    const missingIds = [...ocrDocIds].filter((id) => !nameMatchIds.has(id));
+
+    if (missingIds.length > 0) {
+      const { data: extra } = await supabase
+        .from("documents")
+        .select("id, name, updated_at, document_pages(id, position, storage_path)")
+        .in("id", missingIds)
+        .order("updated_at", { ascending: false });
+      allDocs = [...allDocs, ...(extra ?? [])];
+    }
+  }
+
   return Promise.all(
-    (data ?? []).map(async (doc) => {
+    allDocs.map(async (doc) => {
       const pages = [...(doc.document_pages ?? [])].sort((a, b) => a.position - b.position);
       return {
         id: doc.id,
@@ -66,7 +100,7 @@ export async function listDocuments(search = ""): Promise<ScanDocument[]> {
 export async function getDocument(id: string) {
   const { data, error } = await supabase
     .from("documents")
-    .select("id, name, updated_at, document_pages(id, document_id, position, storage_path, width, height)")
+    .select("id, name, updated_at, document_pages(id, document_id, position, storage_path, width, height, ocr_text)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -82,6 +116,7 @@ export async function getDocument(id: string) {
         storage_path: p.storage_path,
         width: p.width,
         height: p.height,
+        ocrText: (p as { ocr_text?: string | null }).ocr_text ?? null,
         url: (await signed(p.storage_path)) ?? "",
       })),
   );
@@ -89,7 +124,7 @@ export async function getDocument(id: string) {
   return { id: data.id, name: data.name, updated_at: data.updated_at, pages };
 }
 
-export type NewPage = { blob: Blob; width: number; height: number };
+export type NewPage = { blob: Blob; width: number; height: number; ocrText?: string | null };
 
 async function uploadPages(userId: string, documentId: string, pages: NewPage[], startAt: number) {
   const rows = [] as {
@@ -99,6 +134,7 @@ async function uploadPages(userId: string, documentId: string, pages: NewPage[],
     storage_path: string;
     width: number;
     height: number;
+    ocr_text: string | null;
   }[];
 
   for (let i = 0; i < pages.length; i++) {
@@ -115,6 +151,7 @@ async function uploadPages(userId: string, documentId: string, pages: NewPage[],
       storage_path: path,
       width: page.width,
       height: page.height,
+      ocr_text: page.ocrText ?? null,
     });
   }
   if (rows.length) {
@@ -190,4 +227,12 @@ export async function replacePageImage(page: ScanPage, blob: Blob, width: number
     .eq("id", page.id);
   if (error) throw error;
   await touchDocument(page.document_id);
+}
+
+export async function updatePageOcrText(pageId: string, ocrText: string) {
+  const { error } = await supabase
+    .from("document_pages")
+    .update({ ocr_text: ocrText } as Record<string, unknown>)
+    .eq("id", pageId);
+  if (error) throw error;
 }

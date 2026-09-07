@@ -12,6 +12,7 @@ import {
   type Point,
   type Quad,
 } from "@/lib/scan/image";
+import { recognizePage } from "@/lib/scan/ocr";
 
 export type CapturedPage = {
   id: string;
@@ -19,6 +20,8 @@ export type CapturedPage = {
   width: number;
   height: number;
   previewUrl: string;
+  /** OCR text extracted in the background; null while pending or if extraction failed */
+  ocrText: string | null;
 };
 
 const FILTERS: { key: FilterKind; label: string }[] = [
@@ -141,13 +144,26 @@ export function CaptureFlow({
     setBusy(true);
     try {
       const blob = await canvasToJpeg(processed, 0.85);
-      onPage({
+      const page: CapturedPage = {
         id: crypto.randomUUID(),
         blob,
         width: processed.width,
         height: processed.height,
         previewUrl: URL.createObjectURL(blob),
+        ocrText: null,
+      };
+
+      // Fire OCR in background — doesn't block the camera returning to live view.
+      // We pass the processed canvas directly so tesseract gets the best-quality
+      // (filtered, perspective-corrected) image rather than the JPEG-compressed blob.
+      const processedSnapshot = processed; // capture ref before state reset
+      recognizePage(processedSnapshot).then((text) => {
+        page.ocrText = text;
+      }).catch(() => {
+        // OCR failure is silent — ocrText stays null
       });
+
+      onPage(page);
       setShot(null);
       setQuad(null);
       setProcessed(null);
