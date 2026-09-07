@@ -347,7 +347,8 @@ function DocPage() {
             <p className="text-sm text-muted-foreground">Sem páginas neste documento.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mx-auto max-w-4xl">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 justify-items-center">
             {pages.map((page, i) => (
               <div
                 key={page.id}
@@ -428,6 +429,7 @@ function DocPage() {
                 </span>
               </div>
             ))}
+          </div>
           </div>
         )}
       </main>
