@@ -160,7 +160,7 @@ export function CaptureFlow({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background safe-top safe-bottom safe-x">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="text-sm font-medium text-foreground">
           {stage === "camera" ? "Capturar página" : stage === "crop" ? "Ajustar recorte" : "Revisar página"}

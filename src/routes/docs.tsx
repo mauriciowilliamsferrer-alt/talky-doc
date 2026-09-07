@@ -140,9 +140,9 @@ function DocsPage() {
   if (!ready) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh-safe flex-col bg-background safe-x">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur safe-top">
         <div className="flex items-center justify-between">
           <h1 className="text-base font-semibold text-foreground">DocScan</h1>
           <div className="flex items-center gap-2">

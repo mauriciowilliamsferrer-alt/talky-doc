@@ -200,7 +200,7 @@ function Index() {
   const busy = status !== "idle";
 
   return (
-    <main className="paper-grain min-h-screen">
+    <main className="paper-grain min-h-dvh-safe safe-x safe-top safe-bottom">
       <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
         <header className="mb-10">
           <div className="mb-5 flex items-center justify-between">

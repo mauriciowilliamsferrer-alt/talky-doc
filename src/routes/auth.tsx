@@ -114,7 +114,7 @@ function AuthPage() {
   if (!ready) return null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh-safe flex-col items-center justify-center bg-background px-4 safe-x safe-top safe-bottom">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-2">
