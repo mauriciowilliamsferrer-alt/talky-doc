@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReadinessRouteImport } from './routes/readiness'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -37,6 +38,11 @@ const DocsRoute = DocsRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReadinessRoute = ReadinessRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/health': typeof HealthRoute
+  '/profile': typeof ProfileRoute
   '/readiness': typeof ReadinessRoute
   '/scan': typeof ScanRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/health': typeof HealthRoute
+  '/profile': typeof ProfileRoute
   '/readiness': typeof ReadinessRoute
   '/scan': typeof ScanRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRoute
   '/health': typeof HealthRoute
+  '/profile': typeof ProfileRoute
   '/readiness': typeof ReadinessRoute
   '/scan': typeof ScanRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/health'
+    | '/profile'
     | '/readiness'
     | '/scan'
     | '/sitemap.xml'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/health'
+    | '/profile'
     | '/readiness'
     | '/scan'
     | '/sitemap.xml'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/docs'
     | '/health'
+    | '/profile'
     | '/readiness'
     | '/scan'
     | '/sitemap.xml'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DocsRoute: typeof DocsRoute
   HealthRoute: typeof HealthRoute
+  ProfileRoute: typeof ProfileRoute
   ReadinessRoute: typeof ReadinessRoute
   ScanRoute: typeof ScanRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/readiness': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DocsRoute: DocsRoute,
   HealthRoute: HealthRoute,
+  ProfileRoute: ProfileRoute,
   ReadinessRoute: ReadinessRoute,
   ScanRoute: ScanRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
