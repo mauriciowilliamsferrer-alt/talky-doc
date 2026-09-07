@@ -52,7 +52,9 @@ function DocsPage() {
   const [menuId, setMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const renameRef = useRef<HTMLInputElement>(null);
+
 
   const load = async (q = search) => {
     setLoading(true);
