@@ -338,17 +338,24 @@ function DocPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-4">
+      <main className="flex-1 px-4 py-6 pb-28">
         {pages.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 py-20 text-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-              <FileText className="h-8 w-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-muted shadow-inner">
+              <FileText className="h-10 w-10 text-muted-foreground" />
             </span>
-            <p className="text-sm text-muted-foreground">Sem páginas neste documento.</p>
+            <div>
+              <p className="text-base font-medium text-foreground">Documento vazio</p>
+              <p className="mt-1 text-sm text-muted-foreground">Adicione a primeira página usando o botão abaixo.</p>
+            </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-4xl">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 justify-items-center items-start">
+          <div className="mx-auto max-w-5xl">
+            {/* Page count hint */}
+            <p className="mb-4 text-xs font-medium text-muted-foreground">
+              {pages.length} {pages.length === 1 ? "página" : "páginas"} · arraste para reordenar
+            </p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {pages.map((page, i) => (
               <div
                 key={page.id}
@@ -360,26 +367,35 @@ function DocPage() {
                 }}
                 onDrop={() => void handleDragEnd()}
                 onDragEnd={() => void handleDragEnd()}
-                className={`group relative aspect-[3/4] overflow-hidden rounded-xl border bg-muted shadow-sm transition-opacity ${
-                  dragOver === i ? "border-primary opacity-60" : "border-border"
+                className={`group relative w-full cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-md ring-0 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-xl focus-within:ring-2 focus-within:ring-primary/50 ${
+                  dragOver === i
+                    ? "border-primary/60 scale-[0.97] opacity-60 shadow-none"
+                    : "border-border/60"
                 }`}
+                style={{ aspectRatio: "3/4" }}
               >
                 <img
                   src={page.url}
                   alt={`Página ${i + 1}`}
-                  className="h-full w-full object-cover cursor-zoom-in"
+                  className="h-full w-full object-cover"
                   draggable={false}
                   onClick={() => setLightbox({ index: i, zoom: 1, rotate: 0 })}
                 />
 
+                {/* Scrim on hover */}
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  aria-hidden="true"
+                />
+
                 {/* Drag handle */}
-                <div className="absolute left-1.5 top-1.5 cursor-grab opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
-                  <span className="rounded-full bg-black/60 p-1 text-white">
-                    <GripVertical className="h-3 w-3" />
+                <div className="absolute left-2 top-2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
+                  <span className="flex items-center justify-center rounded-full bg-black/50 p-1.5 backdrop-blur-sm">
+                    <GripVertical className="h-3 w-3 text-white" />
                   </span>
                 </div>
 
-                {/* Page options */}
+                {/* Page options button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -387,17 +403,18 @@ function DocPage() {
                     setMenuPageId(menuPageId === page.id ? null : page.id);
                   }}
                   aria-label={`Opções página ${i + 1}`}
-                  className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                  className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus:opacity-100"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
                 </button>
 
+                {/* Context menu */}
                 {menuPageId === page.id && (
-                  <div className="absolute right-1.5 top-8 z-20 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                  <div className="absolute right-2 top-10 z-20 min-w-[130px] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
                     <button
                       type="button"
                       onClick={() => void handleRotatePage(page)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-accent"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-accent"
                     >
                       <RotateCw className="h-3.5 w-3.5" /> Girar
                     </button>
@@ -410,21 +427,29 @@ function DocPage() {
                         a.download = `${safeFileName(docName)}-pagina-${i + 1}.jpg`;
                         a.click();
                       }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-accent"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-medium text-foreground hover:bg-accent"
                     >
                       <Download className="h-3.5 w-3.5" /> Baixar
                     </button>
+                    <div className="my-0.5 h-px bg-border" />
                     <button
                       type="button"
                       onClick={() => void handleDeletePage(page)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-medium text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> Excluir
                     </button>
                   </div>
                 )}
 
-                <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                {/* Page number */}
+                <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-2.5 pb-2.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+                    {i + 1}
+                  </span>
+                </div>
+                {/* Always-visible subtle page number for non-hover */}
+                <span className="absolute bottom-2 left-2.5 rounded-full bg-black/40 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white/80 transition-opacity duration-200 group-hover:opacity-0">
                   {i + 1}
                 </span>
               </div>
@@ -435,12 +460,12 @@ function DocPage() {
       </main>
 
       {/* Add page FAB */}
-      <div className="sticky bottom-6 flex justify-center px-4 pb-4 safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-background via-background/90 to-transparent px-4 pb-6 pt-8 safe-bottom">
         <button
           type="button"
           onClick={() => setCapturing(true)}
           disabled={savingPage}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:bg-primary/90 active:scale-95 disabled:opacity-70"
+          className="inline-flex items-center gap-2.5 rounded-full bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground shadow-[0_8px_24px_-4px_oklch(0.55_0.16_42/0.45)] transition-all duration-200 ease-out hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-4px_oklch(0.55_0.16_42/0.55)] active:scale-95 active:translate-y-0 disabled:opacity-70 disabled:shadow-none"
         >
           {savingPage ? (
             <><Loader2 className="h-5 w-5 animate-spin" /> Salvando página…</>
