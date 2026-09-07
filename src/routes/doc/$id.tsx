@@ -512,9 +512,9 @@ function DocPage() {
 
 // ── Page Lightbox ──────────────────────────────────────────────────────────────
 
-const LIGHTBOX_STEP = 0.1;
-const LIGHTBOX_MIN_ZOOM = 0.5;
+const LIGHTBOX_MIN_ZOOM = 0.1;
 const LIGHTBOX_MAX_ZOOM = 5;
+const LIGHTBOX_STEP = 0.15;
 const clampZoom = (v: number) =>
   Math.round(Math.min(Math.max(v, LIGHTBOX_MIN_ZOOM), LIGHTBOX_MAX_ZOOM) * 100) / 100;
 
@@ -536,15 +536,53 @@ function PageLightbox({
   const page = pages[index]!;
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ── stateRef so event handlers registered once always read live values ──
-  const stateRef = useRef({ index, zoom, rotate, pages, onClose, onChange });
+  // Natural image size — measured once the img loads
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+
+  // Reset natural size and zoom whenever we navigate to a new page
   useEffect(() => {
-    stateRef.current = { index, zoom, rotate, pages, onClose, onChange };
+    setNaturalSize(null);
+    const el = scrollRef.current;
+    if (el) { el.scrollLeft = 0; el.scrollTop = 0; }
+  }, [index, page.url]);
+
+  // Compute the pixel dimensions of the rendered image at zoom=1:
+  // fit inside the scroll container while preserving aspect ratio.
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setContainerSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Base size (zoom = 1): largest fit inside container
+  const baseSize = (() => {
+    if (!naturalSize || containerSize.w === 0) return null;
+    const { w: nw, h: nh } = naturalSize;
+    const { w: cw, h: ch } = containerSize;
+    const scale = Math.min(cw / nw, ch / nh, 1); // never upscale at zoom=1
+    return { w: nw * scale, h: nh * scale };
+  })();
+
+  const clampedZoom = clampZoom(zoom);
+  const imgW = baseSize ? Math.round(baseSize.w * clampedZoom) : undefined;
+  const imgH = baseSize ? Math.round(baseSize.h * clampedZoom) : undefined;
+
+  // ── stateRef — let event handlers registered once always read live values ──
+  const stateRef = useRef({ index, zoom: clampedZoom, rotate, pages, onClose, onChange });
+  useEffect(() => {
+    stateRef.current = { index, zoom: clampedZoom, rotate, pages, onClose, onChange };
   });
 
   // ── keyboard navigation ──────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Don't intercept when the zoom input is focused
+      if ((e.target as HTMLElement).tagName === "INPUT") return;
       const s = stateRef.current;
       if (e.key === "Escape") { s.onClose(); return; }
       if (e.key === "ArrowRight" && s.index < s.pages.length - 1) s.onChange(s.index + 1, 1, 0);
@@ -557,7 +595,7 @@ function PageLightbox({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── wheel zoom — keeps scroll position centred on cursor ────────────────
+  // ── wheel zoom: zoom toward cursor ───────────────────────────────────────
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -567,20 +605,19 @@ function PageLightbox({
       const next = clampZoom(s.zoom + (e.deltaY < 0 ? LIGHTBOX_STEP : -LIGHTBOX_STEP));
       if (next === s.zoom) return;
 
-      // Re-center scroll so the point under the cursor stays fixed
+      // Keep the point under the cursor fixed after zoom
+      const ratio = next / s.zoom;
       const rect = el.getBoundingClientRect();
-      const cx = e.clientX - rect.left; // cursor x relative to container
+      const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
-      const scrollRatio = next / s.zoom;
-      const newScrollLeft = (el.scrollLeft + cx) * scrollRatio - cx;
-      const newScrollTop  = (el.scrollTop  + cy) * scrollRatio - cy;
+      const newSL = (el.scrollLeft + cx) * ratio - cx;
+      const newST = (el.scrollTop  + cy) * ratio - cy;
 
       s.onChange(s.index, next, s.rotate);
-
-      // Apply scroll after React re-renders the new image size
       requestAnimationFrame(() => {
-        el.scrollLeft = newScrollLeft;
-        el.scrollTop  = newScrollTop;
+        if (!scrollRef.current) return;
+        scrollRef.current.scrollLeft = newSL;
+        scrollRef.current.scrollTop  = newST;
       });
     };
     el.addEventListener("wheel", handler, { passive: false });
@@ -590,15 +627,16 @@ function PageLightbox({
 
   // ── pointer drag to pan ──────────────────────────────────────────────────
   const dragStart = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
+  const isDragging = dragStart.current !== null;
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (zoom <= 1) return;
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (clampedZoom <= 1) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const el = scrollRef.current;
     if (!el) return;
     dragStart.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop };
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStart.current) return;
     const el = scrollRef.current;
     if (!el) return;
@@ -606,38 +644,6 @@ function PageLightbox({
     el.scrollTop  = dragStart.current.st - (e.clientY - dragStart.current.y);
   };
   const onPointerUp = () => { dragStart.current = null; };
-
-  // ── reset scroll when navigating to a new page ──────────────────────────
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) { el.scrollLeft = 0; el.scrollTop = 0; }
-  }, [index]);
-
-  const clampedZoom = clampZoom(zoom);
-
-  // Image dimensions: at zoom=1 we fill the container; zoom scales from there.
-  // We let the scroll container handle overflow — no CSS transform on the image.
-  const imgStyle: React.CSSProperties =
-    clampedZoom <= 1
-      ? {
-          maxWidth: "100%",
-          maxHeight: "100%",
-          width: "auto",
-          height: "auto",
-          transform: `rotate(${rotate}deg)`,
-          transition: "transform 0.2s ease",
-          cursor: "default",
-        }
-      : {
-          // Size the image relative to the scrollable container so it actually
-          // overflows and the browser scroll bars + our drag handler take over.
-          width: `${clampedZoom * 100}%`,
-          height: "auto",
-          minWidth: `${clampedZoom * 100}%`,
-          transform: `rotate(${rotate}deg)`,
-          transition: "transform 0.2s ease",
-          cursor: dragStart.current ? "grabbing" : "grab",
-        };
 
   return (
     <div
@@ -652,68 +658,38 @@ function PageLightbox({
           Página {index + 1} de {pages.length}
         </span>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onChange(index, clampedZoom, rotate - 90)}
-            aria-label="Girar anti-horário"
-            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={() => onChange(index, clampedZoom, rotate - 90)} aria-label="Girar anti-horário"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <RotateCcw className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => onChange(index, clampedZoom, rotate + 90)}
-            aria-label="Girar horário"
-            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={() => onChange(index, clampedZoom, rotate + 90)} aria-label="Girar horário"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <RotateCw className="h-4 w-4" />
           </button>
           <div className="mx-1 h-4 w-px bg-white/20" />
-          <button
-            type="button"
-            onClick={() => onChange(index, clampZoom(clampedZoom - LIGHTBOX_STEP), rotate)}
-            aria-label="Diminuir zoom"
-            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={() => onChange(index, clampZoom(clampedZoom - LIGHTBOX_STEP), rotate)} aria-label="Diminuir zoom"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <ZoomOut className="h-4 w-4" />
           </button>
           <input
-            type="number"
-            min={Math.round(LIGHTBOX_MIN_ZOOM * 100)}
-            max={Math.round(LIGHTBOX_MAX_ZOOM * 100)}
-            step={10}
+            type="number" min={10} max={500} step={10}
             value={Math.round(clampedZoom * 100)}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              if (!isNaN(v) && v > 0) onChange(index, clampZoom(v / 100), rotate);
-            }}
+            onChange={(e) => { const v = Number(e.target.value); if (!isNaN(v) && v > 0) onChange(index, clampZoom(v / 100), rotate); }}
             aria-label="Zoom em porcentagem"
             className="w-14 rounded-md bg-white/10 px-1.5 py-0.5 text-center text-xs font-mono text-white outline-none focus:bg-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-xs text-white/40">%</span>
-          <button
-            type="button"
-            onClick={() => onChange(index, clampZoom(clampedZoom + LIGHTBOX_STEP), rotate)}
-            aria-label="Aumentar zoom"
-            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={() => onChange(index, clampZoom(clampedZoom + LIGHTBOX_STEP), rotate)} aria-label="Aumentar zoom"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <ZoomIn className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => onChange(index, 1, 0)}
-            aria-label="Resetar visualização"
-            className="rounded-full px-2.5 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={() => onChange(index, 1, 0)} aria-label="Resetar zoom para 100%"
+            className="rounded-full px-2.5 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white">
             100%
           </button>
           <div className="mx-1 h-4 w-px bg-white/20" />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <button type="button" onClick={onClose} aria-label="Fechar"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -722,42 +698,43 @@ function PageLightbox({
       {/* ── Scrollable image area ────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="relative flex flex-1 items-center justify-center overflow-auto"
+        className="relative flex flex-1 overflow-auto"
+        style={{ cursor: clampedZoom > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        // Prevent text selection while dragging
-        style={{ userSelect: "none" }}
       >
-        {/* Prev */}
+        {/* Centered wrapper — when image is smaller than container, center it;
+            when larger, the overflow + scroll handles navigation */}
+        <div className="m-auto flex items-center justify-center p-4"
+             style={imgW && imgH ? { minWidth: imgW, minHeight: imgH } : { width: "100%", height: "100%" }}>
+          <img
+            src={page.url}
+            alt={`Página ${index + 1}`}
+            draggable={false}
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+            }}
+            style={imgW && imgH
+              ? { width: imgW, height: imgH, transform: `rotate(${rotate}deg)`, transition: "transform 0.2s ease", flexShrink: 0 }
+              : { maxWidth: "100%", maxHeight: "100%", transform: `rotate(${rotate}deg)`, transition: "transform 0.2s ease" }
+            }
+            className="select-none object-contain"
+          />
+        </div>
+
+        {/* Prev / Next — fixed to viewport edges so they're always reachable */}
         {index > 0 && (
-          <button
-            type="button"
-            onClick={() => onChange(index - 1, 1, 0)}
-            aria-label="Página anterior"
-            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/80"
-          >
+          <button type="button" onClick={() => onChange(index - 1, 1, 0)} aria-label="Página anterior"
+            className="fixed left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2.5 text-white shadow-lg transition-colors hover:bg-black/90">
             <ChevronLeft className="h-6 w-6" />
           </button>
         )}
-
-        <img
-          src={page.url}
-          alt={`Página ${index + 1}`}
-          draggable={false}
-          style={imgStyle}
-          className="select-none object-contain"
-        />
-
-        {/* Next */}
         {index < pages.length - 1 && (
-          <button
-            type="button"
-            onClick={() => onChange(index + 1, 1, 0)}
-            aria-label="Próxima página"
-            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/80"
-          >
+          <button type="button" onClick={() => onChange(index + 1, 1, 0)} aria-label="Próxima página"
+            className="fixed right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/60 p-2.5 text-white shadow-lg transition-colors hover:bg-black/90">
             <ChevronRight className="h-6 w-6" />
           </button>
         )}
@@ -767,16 +744,10 @@ function PageLightbox({
       {pages.length > 1 && (
         <div className="flex shrink-0 gap-2 overflow-x-auto border-t border-white/10 px-4 py-3">
           {pages.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onChange(i, 1, 0)}
+            <button key={p.id} type="button" onClick={() => onChange(i, 1, 0)}
               className={`h-14 w-10 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                i === index
-                  ? "border-primary opacity-100"
-                  : "border-transparent opacity-50 hover:opacity-80"
-              }`}
-            >
+                i === index ? "border-primary opacity-100" : "border-transparent opacity-50 hover:opacity-80"
+              }`}>
               <img src={p.url} alt={`Página ${i + 1}`} className="h-full w-full object-cover" />
             </button>
           ))}
