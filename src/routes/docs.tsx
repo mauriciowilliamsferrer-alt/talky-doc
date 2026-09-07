@@ -111,6 +111,27 @@ function DocsPage() {
     }
   };
 
+  const handleDownload = async (doc: ScanDocument) => {
+    setMenuId(null);
+    if (doc.pageCount === 0) {
+      toast.error("Este documento não tem páginas.");
+      return;
+    }
+    setDownloadingId(doc.id);
+    try {
+      const full = await getDocument(doc.id);
+      if (!full || full.pages.length === 0) throw new Error("Documento vazio");
+      const blob = await buildPdf(full.name, full.pages);
+      await shareOrDownload(blob, `${safeFileName(full.name)}.pdf`);
+    } catch {
+      toast.error("Não foi possível baixar o PDF.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     void navigate({ to: "/auth" });
