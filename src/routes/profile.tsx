@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, LogOut, User } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 
@@ -32,11 +32,15 @@ function ProfilePage() {
   const { ready } = useAuthGuard();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [email, setEmail] = useState("");
+  const [provider, setProvider] = useState("");
+  const [memberSince, setMemberSince] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -45,6 +49,16 @@ function ProfilePage() {
       const user = userRes.user;
       if (!user) return;
       setEmail(user.email ?? "");
+      setProvider(user.app_metadata?.provider ?? "email");
+      setMemberSince(
+        user.created_at
+          ? new Date(user.created_at).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+          : "",
+      );
 
       const { data, error } = await supabase
         .from("profiles")
@@ -63,6 +77,38 @@ function ProfilePage() {
       setLoading(false);
     })();
   }, [ready]);
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 2 MB.");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) throw new Error("Sessão expirada.");
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(publicUrl);
+      await supabase.from("profiles").upsert({ id: user.id, avatar_url: publicUrl });
+      toast.success("Foto atualizada.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar a foto.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,24 +176,65 @@ function ProfilePage() {
           </div>
         ) : (
           <form onSubmit={(e) => void handleSave(e)} className="space-y-5">
-            <div className="flex items-center gap-3">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="Foto de perfil"
-                  className="h-16 w-16 rounded-full border border-border object-cover"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-secondary">
-                  <User className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
+            {/* Avatar upload */}
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border border-border bg-secondary transition-opacity hover:opacity-80 disabled:opacity-60"
+                aria-label="Alterar foto de perfil"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Foto de perfil" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground" />
+                )}
+                <span className="absolute inset-0 flex items-end justify-center bg-black/30 pb-1.5 opacity-0 transition-opacity hover:opacity-100">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  ) : (
+                    <Camera className="h-4 w-4 text-white" />
+                  )}
+                </span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleAvatarUpload(f);
+                  e.target.value = "";
+                }}
+              />
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {displayName || "Sem nome"}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground capitalize">{provider}</p>
               </div>
+            </div>
+
+            {/* Account info */}
+            <div className="rounded-xl border border-border bg-card px-4 py-3 space-y-2 text-sm">
+              <p className="font-medium text-foreground">Informações da conta</p>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">E-mail</span>
+                <span className="text-foreground font-medium truncate max-w-[60%] text-right">{email}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Login via</span>
+                <span className="text-foreground font-medium capitalize">{provider}</span>
+              </div>
+              {memberSince && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Membro desde</span>
+                  <span className="text-foreground font-medium">{memberSince}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -159,20 +246,6 @@ function ProfilePage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Como você quer ser chamado"
-                className={inputClass}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="avatarUrl" className="text-sm font-medium text-foreground">
-                Link da foto
-              </label>
-              <input
-                id="avatarUrl"
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://..."
                 className={inputClass}
               />
             </div>

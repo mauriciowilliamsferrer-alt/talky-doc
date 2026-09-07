@@ -6,12 +6,12 @@ import {
   FileText,
   Headphones,
   Loader2,
-  LogOut,
   MoreVertical,
   Pencil,
   Plus,
   Search,
   Trash2,
+  User,
 } from "lucide-react";
 import { listDocuments, renameDocument, deleteDocument, getDocument, type ScanDocument } from "@/lib/scan/docs";
 import { buildPdf, shareOrDownload, safeFileName } from "@/lib/scan/export";
@@ -53,8 +53,27 @@ function DocsPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const renameRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!ready) return;
+    void (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data) {
+        setDisplayName(data.display_name ?? "");
+        setAvatarUrl(data.avatar_url ?? "");
+      }
+    })();
+  }, [ready]);
 
   const load = async (q = search) => {
     setLoading(true);
@@ -130,12 +149,7 @@ function DocsPage() {
     }
   };
 
-
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    void navigate({ to: "/auth" });
-  };
+  void navigate; // used by useAuthGuard redirect
 
   if (!ready) return null;
 
@@ -161,14 +175,21 @@ function DocsPage() {
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Novo</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => void handleSignOut()}
-              aria-label="Sair"
-              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+
+            <Link
+              to="/profile"
+              aria-label="Meu perfil"
+              className="flex items-center gap-2 rounded-full border border-border px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <LogOut className="h-4 w-4" />
-            </button>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+              ) : (
+                <User className="h-4 w-4" />
+              )}
+              {displayName && (
+                <span className="hidden sm:inline max-w-[120px] truncate">{displayName}</span>
+              )}
+            </Link>
           </div>
         </div>
 
