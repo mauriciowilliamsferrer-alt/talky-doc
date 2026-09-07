@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  Download,
   FileText,
   Headphones,
   Loader2,
@@ -12,9 +13,11 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { listDocuments, renameDocument, deleteDocument, type ScanDocument } from "@/lib/scan/docs";
+import { listDocuments, renameDocument, deleteDocument, getDocument, type ScanDocument } from "@/lib/scan/docs";
+import { buildPdf, shareOrDownload, safeFileName } from "@/lib/scan/export";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+
 
 export const Route = createFileRoute("/docs")({
   ssr: false,
@@ -49,7 +52,9 @@ function DocsPage() {
   const [menuId, setMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const renameRef = useRef<HTMLInputElement>(null);
+
 
   const load = async (q = search) => {
     setLoading(true);
@@ -105,6 +110,27 @@ function DocsPage() {
       toast.error("Não foi possível excluir.");
     }
   };
+
+  const handleDownload = async (doc: ScanDocument) => {
+    setMenuId(null);
+    if (doc.pageCount === 0) {
+      toast.error("Este documento não tem páginas.");
+      return;
+    }
+    setDownloadingId(doc.id);
+    try {
+      const full = await getDocument(doc.id);
+      if (!full || full.pages.length === 0) throw new Error("Documento vazio");
+      const blob = await buildPdf(full.name, full.pages);
+      await shareOrDownload(blob, `${safeFileName(full.name)}.pdf`);
+    } catch {
+      toast.error("Não foi possível baixar o PDF.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -237,6 +263,24 @@ function DocsPage() {
                   </div>
                 </Link>
 
+                {/* Download button (always visible) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDownload(doc);
+                  }}
+                  disabled={downloadingId === doc.id}
+                  aria-label={`Baixar ${doc.name} em PDF`}
+                  className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  {downloadingId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </button>
+
                 {/* Context menu button */}
                 <button
                   type="button"
@@ -253,9 +297,16 @@ function DocsPage() {
                 {/* Dropdown */}
                 {menuId === doc.id && (
                   <div
-                    className="absolute right-3 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+                    className="absolute right-3 top-full z-20 mt-1 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
                     onMouseLeave={() => setMenuId(null)}
                   >
+                    <button
+                      type="button"
+                      onClick={() => void handleDownload(doc)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent"
+                    >
+                      <Download className="h-4 w-4" /> Baixar PDF
+                    </button>
                     <button
                       type="button"
                       onClick={() => startRename(doc)}
@@ -263,6 +314,7 @@ function DocsPage() {
                     >
                       <Pencil className="h-4 w-4" /> Renomear
                     </button>
+
                     <button
                       type="button"
                       onClick={() => void handleDelete(doc.id)}
