@@ -284,7 +284,7 @@ function DocsPage() {
                   </div>
                 </Link>
 
-                {/* Download button (always visible) */}
+                {/* Download button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -293,13 +293,26 @@ function DocsPage() {
                   }}
                   disabled={downloadingId === doc.id}
                   aria-label={`Baixar ${doc.name} em PDF`}
-                  className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  className="absolute right-20 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
                 >
                   {downloadingId === doc.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
+                </button>
+
+                {/* Delete button (always visible) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDelete(doc.id);
+                  }}
+                  aria-label={`Excluir ${doc.name}`}
+                  className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
 
                 {/* Context menu button */}
