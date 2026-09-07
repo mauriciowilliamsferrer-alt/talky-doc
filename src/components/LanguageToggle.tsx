@@ -6,6 +6,11 @@ const OPTIONS: { id: Lang; label: string }[] = [
   { id: "en", label: "EN" },
 ];
 
+const LANGUAGE_NAMES: Record<Lang, string> = {
+  pt: "Português",
+  en: "English",
+};
+
 export function LanguageToggle() {
   const { lang, setLang, t } = useI18n();
 
@@ -21,6 +26,7 @@ export function LanguageToggle() {
           type="button"
           onClick={() => setLang(o.id)}
           aria-pressed={lang === o.id}
+          aria-label={LANGUAGE_NAMES[o.id]}
           className={cn(
             "rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-150",
             lang === o.id
