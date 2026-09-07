@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  Download,
   FileText,
   Headphones,
   Loader2,
@@ -12,9 +13,11 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { listDocuments, renameDocument, deleteDocument, type ScanDocument } from "@/lib/scan/docs";
+import { listDocuments, renameDocument, deleteDocument, getDocument, type ScanDocument } from "@/lib/scan/docs";
+import { buildPdf, shareOrDownload, safeFileName } from "@/lib/scan/export";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+
 
 export const Route = createFileRoute("/docs")({
   ssr: false,
