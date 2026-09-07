@@ -156,7 +156,10 @@ function Index() {
     if (search.lang !== lang) {
       void navigate({ search: lang === "pt" ? {} : { lang }, replace: true });
     }
-  }, [search.lang, lang, setLang, navigate]);
+    // `navigate` is stable from useNavigate({ from }) — including it would cause
+    // a re-run every render on some versions; we only care about lang changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.lang, lang, setLang]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -196,7 +199,15 @@ function Index() {
           return;
         }
 
-        const chunks = chunkForTTS(result.text).slice(0, MAX_CHUNKS);
+        const allChunks = chunkForTTS(result.text);
+        if (allChunks.length > MAX_CHUNKS) {
+          toast.info(
+            lang === "pt"
+              ? `Documento longo: apenas os primeiros ${MAX_CHUNKS} blocos serão narrados.`
+              : `Long document: only the first ${MAX_CHUNKS} blocks will be narrated.`,
+          );
+        }
+        const chunks = allChunks.slice(0, MAX_CHUNKS);
         setDoc({
           title: result.title,
           pages: result.pages.length,
@@ -329,7 +340,9 @@ function Index() {
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground" aria-hidden="true">
             <Upload className="size-5" />
           </div>
-          <p id="upload-heading" className="display-md">{t.dropTitle}</p>
+          <h2 id="upload-heading" className="display-md">
+            {t.dropTitle}
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {t.dropHint(MAX_PDF_BYTES / 1024 / 1024)}
           </p>

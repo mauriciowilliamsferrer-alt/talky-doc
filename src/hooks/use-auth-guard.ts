@@ -19,6 +19,8 @@ export function useAuthGuard(options: { requireGuest?: boolean } = {}) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     // Never redirect away from /auth when arriving via a password recovery link
     if (options.requireGuest && isPasswordRecoveryCallback()) {
       setReady(true);
@@ -26,6 +28,7 @@ export function useAuthGuard(options: { requireGuest?: boolean } = {}) {
     }
 
     supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
       if (options.requireGuest) {
         if (data.user) {
           void navigate({ to: "/docs" });
@@ -40,6 +43,8 @@ export function useAuthGuard(options: { requireGuest?: boolean } = {}) {
         }
       }
     });
+
+    return () => { cancelled = true; };
   }, [navigate, options.requireGuest]);
 
   return { ready };

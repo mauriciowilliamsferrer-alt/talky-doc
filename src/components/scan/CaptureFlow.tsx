@@ -102,6 +102,7 @@ export function CaptureFlow({
   const confirmCrop = async () => {
     if (!shot || !quad) return;
     setBusy(true);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     try {
       const warped = warpPerspective(shot, quad);
       const filtered = applyFilter(warped, filter);
@@ -117,7 +118,7 @@ export function CaptureFlow({
     setFilter(kind);
     if (stage !== "review" || !shot || !quad) return;
     setBusy(true);
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       try {
         const filtered = applyFilter(warpPerspective(shot, quad), kind);
         setProcessed(filtered);
@@ -125,7 +126,7 @@ export function CaptureFlow({
       } finally {
         setBusy(false);
       }
-    }, 0);
+    });
   };
 
   const rotate = () => {

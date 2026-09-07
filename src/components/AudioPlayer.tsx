@@ -46,9 +46,8 @@ export function AudioPlayer({ src, fileName }: Props) {
 
   const skip = (delta: number) => {
     const audio = audioRef.current;
-    if (!audio) return;
-    const max = duration || audio.duration || 0;
-    audio.currentTime = Math.min(Math.max(audio.currentTime + delta, 0), max);
+    if (!audio || duration === 0) return;
+    audio.currentTime = Math.min(Math.max(audio.currentTime + delta, 0), duration);
   };
 
   const progress = duration > 0 ? (current / duration) * 100 : 0;
@@ -59,8 +58,16 @@ export function AudioPlayer({ src, fileName }: Props) {
         ref={audioRef}
         src={src}
         preload="metadata"
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
-        onDurationChange={(e) => setDuration(e.currentTarget.duration || 0)}
+        onLoadedMetadata={(e) => {
+          const d = e.currentTarget.duration;
+          if (Number.isFinite(d) && d > 0) setDuration(d);
+        }}
+        onDurationChange={(e) => {
+          const d = e.currentTarget.duration;
+          // Only update when we get a real value; ignore NaN / Infinity that
+          // browsers emit transiently while loading.
+          if (Number.isFinite(d) && d > 0) setDuration(d);
+        }}
         onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}

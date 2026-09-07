@@ -22,6 +22,11 @@ export const Route = createFileRoute("/scan")({
   component: ScanPage,
 });
 
+function defaultDocName() {
+  const now = new Date();
+  return `Documento ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 function ScanPage() {
   const navigate = useNavigate();
   const { ready } = useAuthGuard();
@@ -30,6 +35,7 @@ function ScanPage() {
   const [saving, setSaving] = useState(false);
   const [docName, setDocName] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
+  const placeholder = defaultDocName();
 
   const handlePage = useCallback((page: CapturedPage) => {
     setPages((prev) => [...prev, page]);
@@ -50,10 +56,7 @@ function ScanPage() {
     }
     setSaving(true);
     try {
-      const now = new Date();
-      const name =
-        docName.trim() ||
-        `Documento ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+      const name = docName.trim() || placeholder;
       const newPages = pages.map((p) => ({ blob: p.blob, width: p.width, height: p.height }));
       const id = await createDocument(name, newPages);
       // revoke object URLs
@@ -85,7 +88,7 @@ function ScanPage() {
           ref={nameRef}
           value={docName}
           onChange={(e) => setDocName(e.target.value)}
-          placeholder={`Documento ${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+          placeholder={placeholder}
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
           aria-label="Nome do documento"
         />

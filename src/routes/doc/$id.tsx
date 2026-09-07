@@ -348,7 +348,7 @@ function DocPage() {
           </div>
         ) : (
           <div className="mx-auto max-w-4xl">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 justify-items-center">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 justify-items-center items-start">
             {pages.map((page, i) => (
               <div
                 key={page.id}
@@ -487,6 +487,12 @@ function DocPage() {
 
 // ── Page Lightbox ──────────────────────────────────────────────────────────────
 
+const LIGHTBOX_STEP = 0.05; // 5% per click
+const LIGHTBOX_MIN_ZOOM = 0.1;
+const LIGHTBOX_MAX_ZOOM = 5;
+const clampZoom = (v: number) =>
+  Math.round(Math.min(Math.max(v, LIGHTBOX_MIN_ZOOM), LIGHTBOX_MAX_ZOOM) * 100) / 100;
+
 function PageLightbox({
   pages,
   index,
@@ -505,41 +511,56 @@ function PageLightbox({
   const page = pages[index]!;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const STEP = 0.05; // 5% por clique
-  const MIN_ZOOM = 0.1;
-  const MAX_ZOOM = 5;
-  const clamp = (v: number) => Math.round(Math.min(Math.max(v, MIN_ZOOM), MAX_ZOOM) * 100) / 100;
+  const STEP = LIGHTBOX_STEP;
+  const clamp = clampZoom;
 
-  // keyboard navigation
+  // keyboard navigation — capture current values in the closure via refs so the
+  // handler never goes stale while still being registered only once.
+  const stateRef = useRef({ index, zoom, rotate, pages, onClose, onChange, clamp });
+  useEffect(() => {
+    stateRef.current = { index, zoom, rotate, pages, onClose, onChange, clamp };
+  });
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight" && index < pages.length - 1) onChange(index + 1, 1, 0);
-      if (e.key === "ArrowLeft" && index > 0) onChange(index - 1, 1, 0);
-      if (e.key === "+" || e.key === "=") onChange(index, clamp(zoom + STEP), rotate);
-      if (e.key === "-") onChange(index, clamp(zoom - STEP), rotate);
+      const s = stateRef.current;
+      if (e.key === "Escape") { s.onClose(); return; }
+      if (e.key === "ArrowRight" && s.index < s.pages.length - 1) s.onChange(s.index + 1, 1, 0);
+      if (e.key === "ArrowLeft" && s.index > 0) s.onChange(s.index - 1, 1, 0);
+      if (e.key === "+" || e.key === "=") s.onChange(s.index, s.clamp(s.zoom + STEP), s.rotate);
+      if (e.key === "-") s.onChange(s.index, s.clamp(s.zoom - STEP), s.rotate);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [index, zoom, rotate, onClose, onChange, pages.length]);
+  // Stable: registered once, reads live values via stateRef
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // wheel zoom — 5% por tick
+  // wheel zoom — 5% per tick
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
+      const s = stateRef.current;
       const delta = e.deltaY < 0 ? STEP : -STEP;
-      onChange(index, clamp(zoom + delta), rotate);
+      s.onChange(s.index, s.clamp(s.zoom + delta), s.rotate);
     };
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
-  }, [index, zoom, rotate, onChange]);
+  // Stable: registered once on mount, reads live values via stateRef
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const clampedZoom = clamp(zoom);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 safe-top safe-bottom">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/95 safe-top safe-bottom"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Página ${index + 1} de ${pages.length}`}
+    >
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <span className="text-sm font-medium text-white/80">

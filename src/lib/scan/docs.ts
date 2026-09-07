@@ -172,11 +172,10 @@ export async function deletePage(page: ScanPage) {
 }
 
 export async function reorderPages(documentId: string, orderedIds: string[]) {
-  await Promise.all(
-    orderedIds.map((id, position) =>
-      supabase.from("document_pages").update({ position }).eq("id", id),
-    ),
-  );
+  // Sequential updates avoid write races on the same document_pages rows.
+  for (let position = 0; position < orderedIds.length; position++) {
+    await supabase.from("document_pages").update({ position }).eq("id", orderedIds[position]!);
+  }
   await touchDocument(documentId);
 }
 

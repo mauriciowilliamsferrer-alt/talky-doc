@@ -41,15 +41,20 @@ export async function synthesizeChunk(text: string, voice: string, signal?: Abor
 
 const sleep = (ms: number, signal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true },
-    );
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout>;
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 
 /** Gera um bloco, com backoff em caso de rate limit (429) ou falha temporária. */
@@ -74,7 +79,7 @@ export async function synthesizeChunks(
   signal?: AbortSignal,
 ): Promise<Blob> {
   const CONCURRENCY = 3;
-  const parts: Blob[] = new Array(chunks.length);
+  const parts: Blob[] = new Array<Blob>(chunks.length).fill(new Blob());
   let done = 0;
 
   for (let start = 0; start < chunks.length; start += CONCURRENCY) {

@@ -10,9 +10,10 @@ async function fetchBytes(url: string) {
 export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(name);
-  for (const page of pages) {
-    const bytes = await fetchBytes(page.url);
-    const image = await pdf.embedJpg(bytes);
+  // Fetch all page images in parallel, then embed in order.
+  const bytesArray = await Promise.all(pages.map((p) => fetchBytes(p.url)));
+  for (let i = 0; i < pages.length; i++) {
+    const image = await pdf.embedJpg(bytesArray[i]!);
     const p = pdf.addPage([image.width, image.height]);
     p.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
   }
@@ -47,12 +48,11 @@ export async function shareOrDownload(blob: Blob, filename: string) {
 }
 
 export function safeFileName(name: string) {
-  return (
-    name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9-_ ]/g, "")
-      .trim()
-      .replace(/\s+/g, "-") || "documento"
-  );
+  const sanitized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+  return sanitized || "documento";
 }

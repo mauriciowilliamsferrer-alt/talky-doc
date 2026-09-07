@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ScanIcon } from "lucide-react";
@@ -41,7 +41,10 @@ function AuthPage() {
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate, mode]);
+    // `mode` is intentionally read only at subscription time for the SIGNED_IN guard;
+    // the PASSWORD_RECOVERY branch doesn't depend on it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +141,7 @@ function AuthPage() {
                 id="email"
                 type="email"
                 required
-                autoComplete="email"
+                autoComplete="email username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"

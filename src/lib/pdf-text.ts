@@ -20,23 +20,27 @@ export async function extractPdfText(
   const doc = await pdfjs.getDocument({ data }).promise;
 
   const pages: string[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    let out = "";
-    let lastY: number | null = null;
-    for (const item of content.items) {
-      if (!("str" in item)) continue;
-      const y = item.transform?.[5] ?? null;
-      if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) {
-        out += out.endsWith("-") ? "" : "\n";
+  try {
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      let out = "";
+      let lastY: number | null = null;
+      for (const item of content.items) {
+        if (!("str" in item)) continue;
+        const y = item.transform?.[5] ?? null;
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) {
+          out += out.endsWith("-") ? "" : "\n";
+        }
+        out += item.str;
+        if (item.hasEOL) out += "\n";
+        lastY = y;
       }
-      out += item.str;
-      if (item.hasEOL) out += "\n";
-      lastY = y;
+      pages.push(normalize(out));
+      onProgress?.(i, doc.numPages);
     }
-    pages.push(normalize(out));
-    onProgress?.(i, doc.numPages);
+  } finally {
+    doc.destroy();
   }
 
   let metaTitle = "";

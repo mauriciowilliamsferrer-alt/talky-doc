@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Download,
@@ -59,8 +59,10 @@ function DocsPage() {
 
   useEffect(() => {
     if (!ready) return;
+    let cancelled = false;
     void (async () => {
       const { data: userRes } = await supabase.auth.getUser();
+      if (cancelled) return;
       const user = userRes.user;
       if (!user) return;
       const { data } = await supabase
@@ -68,14 +70,15 @@ function DocsPage() {
         .select("display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
-      if (data) {
+      if (!cancelled && data) {
         setDisplayName(data.display_name ?? "");
         setAvatarUrl(data.avatar_url ?? "");
       }
     })();
+    return () => { cancelled = true; };
   }, [ready]);
 
-  const load = async (q = search) => {
+  const load = useCallback(async (q = search) => {
     setLoading(true);
     try {
       setDocs(await listDocuments(q));
@@ -84,19 +87,20 @@ function DocsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  // search is intentionally excluded – callers pass q explicitly or it's stable at call time
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    if (!ready) return;
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready, load]);
 
   // Debounce search
   useEffect(() => {
     const t = setTimeout(() => void load(search), 350);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, load]);
 
   const startRename = (doc: ScanDocument) => {
     setMenuId(null);
@@ -158,8 +162,6 @@ function DocsPage() {
       setDownloadingId(null);
     }
   };
-
-  void navigate; // used by useAuthGuard redirect
 
   if (!ready) return null;
 
