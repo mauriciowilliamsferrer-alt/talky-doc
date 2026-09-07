@@ -483,12 +483,12 @@ function DocPage() {
               </div>
             ))}
           </div>
-          </div>
 
           {/* OCR text panel — collapsible, shows extracted text from all pages */}
           {pages.some((p) => p.ocrText) && (
             <OcrTextPanel pages={pages} />
           )}
+          </div>
         )}
       </main>
 
