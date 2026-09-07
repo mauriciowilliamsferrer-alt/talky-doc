@@ -50,7 +50,10 @@ function ScanPage() {
     }
     setSaving(true);
     try {
-      const name = docName.trim() || `Documento ${new Date().toLocaleDateString("pt-BR")}`;
+      const now = new Date();
+      const name =
+        docName.trim() ||
+        `Documento ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
       const newPages = pages.map((p) => ({ blob: p.blob, width: p.width, height: p.height }));
       const id = await createDocument(name, newPages);
       // revoke object URLs
@@ -82,7 +85,7 @@ function ScanPage() {
           ref={nameRef}
           value={docName}
           onChange={(e) => setDocName(e.target.value)}
-          placeholder={`Documento ${new Date().toLocaleDateString("pt-BR")}`}
+          placeholder={`Documento ${new Date().toLocaleDateString("pt-BR")} ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
           className="min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
           aria-label="Nome do documento"
         />
