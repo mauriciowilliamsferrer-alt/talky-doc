@@ -13,20 +13,63 @@ const SITE_URL = "https://talky-doc.lovable.app";
 
 const COPY = {
   pt: {
-    title: "Leitor de PDF em Voz Alta | Ouça seus documentos",
+    title: "Hear My PDF — Leitor de PDF em Voz Alta | Ouça seus documentos",
     description:
-      "Envie um PDF e ouça o conteúdo narrado com voz natural no navegador: controles de reprodução, escolha de voz, velocidade e download em MP3.",
-    ogTitle: "Leitor de PDF em Voz Alta",
+      "Envie um PDF e ouça o conteúdo narrado com voz natural no navegador: controles de reprodução, escolha de voz, velocidade e download em MP3. Grátis, sem instalação.",
+    ogTitle: "Hear My PDF — Leitor de PDF em Voz Alta",
     ogDescription:
-      "Transforme qualquer PDF com texto em narração natural e baixe o áudio em MP3.",
+      "Transforme qualquer PDF com texto em narração natural e baixe o áudio em MP3. Grátis, sem instalação.",
   },
   en: {
-    title: "PDF Voice Reader | Listen to your documents",
+    title: "Hear My PDF — PDF Voice Reader | Listen to your documents",
     description:
-      "Upload a PDF and listen to it narrated with a natural voice in your browser: playback controls, voice picker, speed and MP3 download.",
-    ogTitle: "PDF Voice Reader",
-    ogDescription: "Turn any text-based PDF into natural narration and download the MP3.",
+      "Upload a PDF and listen to it narrated with a natural voice in your browser: playback controls, voice picker, speed and MP3 download. Free, no install.",
+    ogTitle: "Hear My PDF — PDF Voice Reader",
+    ogDescription: "Turn any text-based PDF into natural narration and download the MP3. Free, no install.",
   },
+} as const;
+
+const JSON_LD = {
+  pt: JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Hear My PDF",
+    url: SITE_URL,
+    description:
+      "Leitor de PDF em voz alta com vozes naturais. Envie um PDF, escolha a voz e ouça no navegador com download em MP3.",
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Web",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
+    inLanguage: "pt-BR",
+    featureList: [
+      "Leitura de PDF em voz alta",
+      "Vozes naturais via IA",
+      "Download de áudio em MP3",
+      "Controle de velocidade",
+      "Seleção de voz",
+      "Sem instalação",
+    ],
+  }),
+  en: JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Hear My PDF",
+    url: `${SITE_URL}/?lang=en`,
+    description:
+      "PDF voice reader with natural AI voices. Upload a PDF, pick a voice and listen in your browser with MP3 download.",
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Web",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    inLanguage: "en",
+    featureList: [
+      "PDF text-to-speech",
+      "Natural AI voices",
+      "MP3 audio download",
+      "Playback speed control",
+      "Voice selection",
+      "No install required",
+    ],
+  }),
 } as const;
 
 export const Route = createFileRoute("/")({
@@ -55,12 +98,20 @@ export const Route = createFileRoute("/")({
           content: lang === "pt" ? "en_US" : "pt_BR",
         },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: copy.ogTitle },
+        { name: "twitter:description", content: copy.ogDescription },
       ],
       links: [
         { rel: "canonical", href: url },
         { rel: "alternate", hrefLang: "pt-BR", href: `${SITE_URL}/` },
         { rel: "alternate", hrefLang: "en", href: `${SITE_URL}/?lang=en` },
         { rel: "alternate", hrefLang: "x-default", href: `${SITE_URL}/` },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON_LD[lang],
+        },
       ],
     };
   },
@@ -202,7 +253,7 @@ function Index() {
   return (
     <main className="paper-grain min-h-dvh-safe safe-x safe-top safe-bottom">
       <div className="mx-auto w-full max-w-3xl px-5 py-14 sm:py-20">
-        <header className="mb-10">
+        <header className="mb-10" role="banner">
           <div className="mb-5 flex items-center justify-between">
             <Link
               to="/docs"
@@ -214,9 +265,9 @@ function Index() {
             <LanguageToggle />
           </div>
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            <Headphones className="size-3.5" /> {t.badge}
+            <Headphones className="size-3.5" aria-hidden="true" /> {t.badge}
           </p>
-          <h1 className="display-xl text-balance">{t.heroTitle}</h1>
+          <h1 id="hero-title" className="display-xl text-balance">{t.heroTitle}</h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">
             {t.heroSubtitle}
           </p>
@@ -246,7 +297,7 @@ function Index() {
         </Link>
 
         <section
-          aria-label={t.uploadAria}
+          aria-labelledby="upload-heading"
           onDragOver={(e) => {
             e.preventDefault();
             setDragging(true);
@@ -268,16 +319,17 @@ function Index() {
             type="file"
             accept="application/pdf,.pdf"
             className="sr-only"
+            aria-label={t.uploadAria}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void handleFile(file);
               e.target.value = "";
             }}
           />
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground" aria-hidden="true">
             <Upload className="size-5" />
           </div>
-          <p className="display-md">{t.dropTitle}</p>
+          <p id="upload-heading" className="display-md">{t.dropTitle}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {t.dropHint(MAX_PDF_BYTES / 1024 / 1024)}
           </p>

@@ -77,19 +77,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "DocScan" },
-      { title: "Leitor de PDF em Voz Alta" },
+      { name: "apple-mobile-web-app-title", content: "Hear My PDF" },
+      { title: "Hear My PDF — Leitor de PDF em Voz Alta" },
       {
         name: "description",
-        content: "Ouça seus PDFs narrados com voz natural direto no navegador.",
+        content:
+          "Envie um PDF e ouça o conteúdo narrado com voz natural direto no navegador. Controles de reprodução, escolha de voz, ajuste de velocidade e download em MP3 — sem instalação.",
       },
-      { property: "og:title", content: "Leitor de PDF em Voz Alta" },
+      { property: "og:title", content: "Hear My PDF — Leitor de PDF em Voz Alta" },
       {
         property: "og:description",
-        content: "Ouça seus PDFs narrados com voz natural direto no navegador.",
+        content:
+          "Transforme qualquer PDF com texto em narração natural e baixe o áudio em MP3. Grátis, sem instalação.",
       },
+      { property: "og:site_name", content: "Hear My PDF" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Hear My PDF — Leitor de PDF em Voz Alta" },
+      {
+        name: "twitter:description",
+        content: "Ouça seus PDFs com voz natural no navegador. Download em MP3 incluído.",
+      },
+      { name: "application-name", content: "Hear My PDF" },
     ],
 
     links: [
