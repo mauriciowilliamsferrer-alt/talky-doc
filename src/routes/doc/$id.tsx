@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileText,
   GripVertical,
@@ -11,9 +13,13 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  RotateCcw,
   RotateCw,
   Share2,
   Trash2,
+  X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import {
   getDocument,
@@ -61,6 +67,7 @@ function DocPage() {
   const [menuPageId, setMenuPageId] = useState<string | null>(null);
 
   const [savingPage, setSavingPage] = useState(false);
+  const [lightbox, setLightbox] = useState<{ index: number; zoom: number; rotate: number } | null>(null);
 
   // Drag-to-reorder state
   const dragIdx = useRef<number | null>(null);
@@ -319,8 +326,9 @@ function DocPage() {
                 <img
                   src={page.url}
                   alt={`Página ${i + 1}`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover cursor-zoom-in"
                   draggable={false}
+                  onClick={() => setLightbox({ index: i, zoom: 1, rotate: 0 })}
                 />
 
                 {/* Drag handle */}
@@ -418,6 +426,196 @@ function DocPage() {
           onClick={() => setMenuPageId(null)}
           aria-hidden="true"
         />
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <PageLightbox
+          pages={pages}
+          index={lightbox.index}
+          zoom={lightbox.zoom}
+          rotate={lightbox.rotate}
+          onClose={() => setLightbox(null)}
+          onChange={(index, zoom, rotate) => setLightbox({ index, zoom, rotate })}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Page Lightbox ──────────────────────────────────────────────────────────────
+
+function PageLightbox({
+  pages,
+  index,
+  zoom,
+  rotate,
+  onClose,
+  onChange,
+}: {
+  pages: ScanPage[];
+  index: number;
+  zoom: number;
+  rotate: number;
+  onClose: () => void;
+  onChange: (index: number, zoom: number, rotate: number) => void;
+}) {
+  const page = pages[index]!;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight" && index < pages.length - 1) onChange(index + 1, 1, 0);
+      if (e.key === "ArrowLeft" && index > 0) onChange(index - 1, 1, 0);
+      if (e.key === "+" || e.key === "=") onChange(index, Math.min(zoom + 0.5, 5), rotate);
+      if (e.key === "-") onChange(index, Math.max(zoom - 0.5, 0.5), rotate);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [index, zoom, rotate, onClose, onChange, pages.length]);
+
+  // wheel zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      onChange(index, Math.min(Math.max(zoom + delta, 0.5), 5), rotate);
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [index, zoom, rotate, onChange]);
+
+  const clampedZoom = Math.min(Math.max(zoom, 0.5), 5);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 safe-top safe-bottom">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <span className="text-sm font-medium text-white/80">
+          Página {index + 1} de {pages.length}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onChange(index, clampedZoom, rotate - 90)}
+            aria-label="Girar anti-horário"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(index, clampedZoom, rotate + 90)}
+            aria-label="Girar horário"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <RotateCw className="h-4 w-4" />
+          </button>
+          <div className="mx-1 h-4 w-px bg-white/20" />
+          <button
+            type="button"
+            onClick={() => onChange(index, Math.max(clampedZoom - 0.5, 0.5), rotate)}
+            aria-label="Diminuir zoom"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <span className="min-w-[3rem] text-center text-xs font-mono text-white/60">
+            {Math.round(clampedZoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange(index, Math.min(clampedZoom + 0.5, 5), rotate)}
+            aria-label="Aumentar zoom"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(index, 1, 0)}
+            aria-label="Resetar visualização"
+            className="rounded-full px-2.5 py-1.5 text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            Reset
+          </button>
+          <div className="mx-1 h-4 w-px bg-white/20" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Image area */}
+      <div
+        ref={containerRef}
+        className="relative flex flex-1 items-center justify-center overflow-auto"
+      >
+        {/* Prev */}
+        {index > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange(index - 1, 1, 0)}
+            aria-label="Página anterior"
+            className="absolute left-3 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/80 transition-colors"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+        )}
+
+        <img
+          src={page.url}
+          alt={`Página ${index + 1}`}
+          draggable={false}
+          style={{
+            transform: `rotate(${rotate}deg) scale(${clampedZoom})`,
+            transformOrigin: "center center",
+            transition: "transform 0.2s ease",
+            maxWidth: clampedZoom <= 1 ? "100%" : "none",
+            maxHeight: clampedZoom <= 1 ? "100%" : "none",
+            cursor: clampedZoom > 1 ? "grab" : "default",
+          }}
+          className="select-none object-contain"
+        />
+
+        {/* Next */}
+        {index < pages.length - 1 && (
+          <button
+            type="button"
+            onClick={() => onChange(index + 1, 1, 0)}
+            aria-label="Próxima página"
+            className="absolute right-3 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/80 transition-colors"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        )}
+      </div>
+
+      {/* Thumbnail strip */}
+      {pages.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto px-4 py-3 border-t border-white/10">
+          {pages.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onChange(i, 1, 0)}
+              className={`flex-shrink-0 h-14 w-10 overflow-hidden rounded-lg border-2 transition-colors ${
+                i === index ? "border-primary" : "border-transparent opacity-50 hover:opacity-80"
+              }`}
+            >
+              <img src={p.url} alt={`Página ${i + 1}`} className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
