@@ -73,11 +73,23 @@ export async function synthesizeChunks(
   onProgress: (done: number, total: number) => void,
   signal?: AbortSignal,
 ): Promise<Blob> {
-  const parts: Blob[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    parts.push(await synthesizeWithRetry(chunks[i] as string, voice, signal));
-    onProgress(i + 1, chunks.length);
+  const CONCURRENCY = 3;
+  const parts: Blob[] = new Array(chunks.length);
+  let done = 0;
+
+  for (let start = 0; start < chunks.length; start += CONCURRENCY) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    const batch = chunks.slice(start, start + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((chunk, i) => synthesizeWithRetry(chunk, voice, signal).then((blob) => ({ blob, index: start + i }))),
+    );
+    for (const { blob, index } of results) {
+      parts[index] = blob;
+      done++;
+      onProgress(done, chunks.length);
+    }
   }
+
   return new Blob(parts, { type: "audio/mpeg" });
 }
 

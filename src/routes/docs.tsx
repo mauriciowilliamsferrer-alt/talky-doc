@@ -118,16 +118,26 @@ function DocsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     setMenuId(null);
-    if (!confirm("Excluir este documento permanentemente?")) return;
-    try {
-      await deleteDocument(id);
-      setDocs((prev) => prev.filter((d) => d.id !== id));
-      toast.success("Documento excluído.");
-    } catch {
-      toast.error("Não foi possível excluir.");
-    }
+    toast("Excluir este documento?", {
+      description: "Esta ação não pode ser desfeita.",
+      action: {
+        label: "Excluir",
+        onClick: () => {
+          void (async () => {
+            try {
+              await deleteDocument(id);
+              setDocs((prev) => prev.filter((d) => d.id !== id));
+              toast.success("Documento excluído.");
+            } catch {
+              toast.error("Não foi possível excluir.");
+            }
+          })();
+        },
+      },
+      cancel: { label: "Cancelar", onClick: () => {} },
+    });
   };
 
   const handleDownload = async (doc: ScanDocument) => {

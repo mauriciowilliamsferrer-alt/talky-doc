@@ -230,7 +230,6 @@ export function CaptureFlow({
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="sr-only"
                 onChange={(e) => void onFile(e.target.files?.[0])}
               />

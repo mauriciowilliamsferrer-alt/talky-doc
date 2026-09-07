@@ -60,6 +60,8 @@ function DocPage() {
   const nameRef = useRef<HTMLInputElement>(null);
   const [menuPageId, setMenuPageId] = useState<string | null>(null);
 
+  const [savingPage, setSavingPage] = useState(false);
+
   // Drag-to-reorder state
   const dragIdx = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
@@ -109,16 +111,25 @@ function DocPage() {
 
   // ── Delete page ─────────────────────────────────────────────────────────────
 
-  const handleDeletePage = async (page: ScanPage) => {
+  const handleDeletePage = (page: ScanPage) => {
     setMenuPageId(null);
-    if (!confirm("Excluir esta página?")) return;
-    try {
-      await deletePage(page);
-      setPages((prev) => prev.filter((p) => p.id !== page.id));
-      toast.success("Página removida.");
-    } catch {
-      toast.error("Não foi possível excluir a página.");
-    }
+    toast("Excluir esta página?", {
+      action: {
+        label: "Excluir",
+        onClick: () => {
+          void (async () => {
+            try {
+              await deletePage(page);
+              setPages((prev) => prev.filter((p) => p.id !== page.id));
+              toast.success("Página removida.");
+            } catch {
+              toast.error("Não foi possível excluir a página.");
+            }
+          })();
+        },
+      },
+      cancel: { label: "Cancelar", onClick: () => {} },
+    });
   };
 
   // ── Rotate page ─────────────────────────────────────────────────────────────
@@ -147,6 +158,7 @@ function DocPage() {
 
   const handleNewPage = useCallback(
     async (page: CapturedPage) => {
+      setSavingPage(true);
       try {
         const startAt = pages.length;
         await addPages(id, [{ blob: page.blob, width: page.width, height: page.height }], startAt);
@@ -154,6 +166,8 @@ function DocPage() {
         await load();
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Falha ao adicionar página.");
+      } finally {
+        setSavingPage(false);
       }
     },
     [id, pages.length, load],
@@ -200,10 +214,12 @@ function DocPage() {
 
   const exportImages = () => {
     pages.forEach((p, i) => {
-      const a = document.createElement("a");
-      a.href = p.url;
-      a.download = `${safeFileName(docName)}-pagina-${i + 1}.jpg`;
-      a.click();
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = p.url;
+        a.download = `${safeFileName(docName)}-pagina-${i + 1}.jpg`;
+        a.click();
+      }, i * 300);
     });
   };
 
@@ -373,10 +389,14 @@ function DocPage() {
         <button
           type="button"
           onClick={() => setCapturing(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:bg-primary/90 active:scale-95"
+          disabled={savingPage}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:bg-primary/90 active:scale-95 disabled:opacity-70"
         >
-          <Plus className="h-5 w-5" />
-          Adicionar página
+          {savingPage ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> Salvando página…</>
+          ) : (
+            <><Plus className="h-5 w-5" /> Adicionar página</>
+          )}
         </button>
       </div>
 
