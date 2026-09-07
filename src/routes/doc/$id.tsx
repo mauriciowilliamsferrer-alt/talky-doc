@@ -463,33 +463,38 @@ function PageLightbox({
   const page = pages[index]!;
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const STEP = 0.05; // 5% por clique
+  const MIN_ZOOM = 0.1;
+  const MAX_ZOOM = 5;
+  const clamp = (v: number) => Math.round(Math.min(Math.max(v, MIN_ZOOM), MAX_ZOOM) * 100) / 100;
+
   // keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight" && index < pages.length - 1) onChange(index + 1, 1, 0);
       if (e.key === "ArrowLeft" && index > 0) onChange(index - 1, 1, 0);
-      if (e.key === "+" || e.key === "=") onChange(index, Math.min(zoom + 0.5, 5), rotate);
-      if (e.key === "-") onChange(index, Math.max(zoom - 0.5, 0.5), rotate);
+      if (e.key === "+" || e.key === "=") onChange(index, clamp(zoom + STEP), rotate);
+      if (e.key === "-") onChange(index, clamp(zoom - STEP), rotate);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [index, zoom, rotate, onClose, onChange, pages.length]);
 
-  // wheel zoom
+  // wheel zoom — 5% por tick
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.25 : -0.25;
-      onChange(index, Math.min(Math.max(zoom + delta, 0.5), 5), rotate);
+      const delta = e.deltaY < 0 ? STEP : -STEP;
+      onChange(index, clamp(zoom + delta), rotate);
     };
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
   }, [index, zoom, rotate, onChange]);
 
-  const clampedZoom = Math.min(Math.max(zoom, 0.5), 5);
+  const clampedZoom = clamp(zoom);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95 safe-top safe-bottom">
@@ -518,18 +523,29 @@ function PageLightbox({
           <div className="mx-1 h-4 w-px bg-white/20" />
           <button
             type="button"
-            onClick={() => onChange(index, Math.max(clampedZoom - 0.5, 0.5), rotate)}
+            onClick={() => onChange(index, clamp(clampedZoom - STEP), rotate)}
             aria-label="Diminuir zoom"
             className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
-          <span className="min-w-[3rem] text-center text-xs font-mono text-white/60">
-            {Math.round(clampedZoom * 100)}%
-          </span>
+          <input
+            type="number"
+            min={10}
+            max={500}
+            step={5}
+            value={Math.round(clampedZoom * 100)}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (!isNaN(v)) onChange(index, clamp(v / 100), rotate);
+            }}
+            aria-label="Zoom em porcentagem"
+            className="w-14 rounded-md bg-white/10 px-1.5 py-0.5 text-center text-xs font-mono text-white outline-none focus:bg-white/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="text-xs text-white/40">%</span>
           <button
             type="button"
-            onClick={() => onChange(index, Math.min(clampedZoom + 0.5, 5), rotate)}
+            onClick={() => onChange(index, clamp(clampedZoom + STEP), rotate)}
             aria-label="Aumentar zoom"
             className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
           >
@@ -541,7 +557,7 @@ function PageLightbox({
             aria-label="Resetar visualização"
             className="rounded-full px-2.5 py-1.5 text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors"
           >
-            Reset
+            100%
           </button>
           <div className="mx-1 h-4 w-px bg-white/20" />
           <button
