@@ -25,6 +25,7 @@ import {
   getDocument,
   addPages,
   deletePage,
+  listDocumentIds,
   reorderPages,
   renameDocument,
   replacePageImage,
@@ -68,6 +69,7 @@ function DocPage() {
 
   const [savingPage, setSavingPage] = useState(false);
   const [lightbox, setLightbox] = useState<{ index: number; zoom: number; rotate: number } | null>(null);
+  const [siblings, setSiblings] = useState<{ id: string; name: string }[]>([]);
 
   // Drag-to-reorder state
   const dragIdx = useRef<number | null>(null);
@@ -95,6 +97,10 @@ function DocPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void listDocumentIds().then(setSiblings).catch(() => {});
+  }, []);
 
   // ── Name editing ────────────────────────────────────────────────────────────
 
@@ -253,6 +259,40 @@ function DocPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
+
+          {/* Prev / Next document */}
+          {siblings.length > 1 && (() => {
+            const idx = siblings.findIndex((s) => s.id === id);
+            const prev = siblings[idx - 1];
+            const next = siblings[idx + 1];
+            return (
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  disabled={!prev}
+                  onClick={() => prev && void navigate({ to: "/doc/$id", params: { id: prev.id } })}
+                  aria-label={prev ? `Documento anterior: ${prev.name}` : "Sem documento anterior"}
+                  title={prev?.name}
+                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {idx + 1}/{siblings.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={!next}
+                  onClick={() => next && void navigate({ to: "/doc/$id", params: { id: next.id } })}
+                  aria-label={next ? `Próximo documento: ${next.name}` : "Sem próximo documento"}
+                  title={next?.name}
+                  className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Editable title */}
           {editingName ? (

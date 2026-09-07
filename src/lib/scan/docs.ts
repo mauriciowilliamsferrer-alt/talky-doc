@@ -31,6 +31,15 @@ async function signed(path: string, expires = 3600) {
   return data?.signedUrl ?? null;
 }
 
+export async function listDocumentIds(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await supabase
+    .from("documents")
+    .select("id, name")
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function listDocuments(search = ""): Promise<ScanDocument[]> {
   let query = supabase
     .from("documents")
