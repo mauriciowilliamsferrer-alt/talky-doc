@@ -211,16 +211,16 @@ function DocPage() {
 
   if (!ready || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh-safe items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh-safe flex-col bg-background safe-x">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur safe-top">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -369,7 +369,7 @@ function DocPage() {
       </main>
 
       {/* Add page FAB */}
-      <div className="sticky bottom-6 flex justify-center px-4 pb-4">
+      <div className="sticky bottom-6 flex justify-center px-4 pb-4 safe-bottom">
         <button
           type="button"
           onClick={() => setCapturing(true)}

@@ -157,6 +157,35 @@
   body {
     line-height: 1.55;
     letter-spacing: 0.004em;
+    /* iOS: avoid rubber-band scroll chaining and horizontal overflow */
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* iOS Safari zooms in on focus when font-size < 16px */
+  input,
+  textarea,
+  select,
+  button {
+    font-size: max(16px, 1em);
+  }
+
+  /* No grey flash on tap */
+  a,
+  button,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Comfortable tap targets on touch devices */
+  @media (pointer: coarse) {
+    button,
+    a[role="button"],
+    [role="button"] {
+      min-height: 44px;
+    }
   }
 }
 
@@ -205,4 +234,23 @@
     animation-iteration-count: 1 !important;
     transition-duration: 150ms !important;
   }
+}
+
+/* --- iOS safe areas / dynamic viewport --- */
+@utility min-h-dvh-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
