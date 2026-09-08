@@ -20,7 +20,6 @@ export type Database = {
           document_id: string
           height: number
           id: string
-          ocr_text: string | null
           position: number
           storage_path: string
           user_id: string
@@ -31,7 +30,6 @@ export type Database = {
           document_id: string
           height?: number
           id?: string
-          ocr_text?: string | null
           position?: number
           storage_path: string
           user_id: string
@@ -42,7 +40,6 @@ export type Database = {
           document_id?: string
           height?: number
           id?: string
-          ocr_text?: string | null
           position?: number
           storage_path?: string
           user_id?: string
