@@ -232,7 +232,7 @@ export async function replacePageImage(page: ScanPage, blob: Blob, width: number
 export async function updatePageOcrText(pageId: string, ocrText: string) {
   const { error } = await supabase
     .from("document_pages")
-    .update({ ocr_text: ocrText } as Record<string, unknown>)
+    .update({ ocr_text: ocrText })
     .eq("id", pageId);
   if (error) throw error;
 }

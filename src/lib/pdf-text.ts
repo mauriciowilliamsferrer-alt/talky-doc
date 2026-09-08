@@ -40,7 +40,7 @@ export async function extractPdfText(
       onProgress?.(i, doc.numPages);
     }
   } finally {
-    doc.destroy();
+    void (doc as unknown as { destroy?: () => Promise<void> }).destroy?.();
   }
 
   let metaTitle = "";
