@@ -1,0 +1,2 @@
+ALTER TABLE public.document_pages ADD COLUMN IF NOT EXISTS ocr_text text;
+CREATE INDEX IF NOT EXISTS document_pages_ocr_text_idx ON public.document_pages USING gin (to_tsvector('portuguese', coalesce(ocr_text, '')));
