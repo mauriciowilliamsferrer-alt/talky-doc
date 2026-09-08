@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { ScanPage } from "./docs";
 
 async function fetchBytes(url: string) {
@@ -12,13 +12,43 @@ export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
   pdf.setTitle(name);
   // Fetch all page images in parallel, then embed in order.
   const bytesArray = await Promise.all(pages.map((p) => fetchBytes(p.url)));
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
   for (let i = 0; i < pages.length; i++) {
     const image = await pdf.embedJpg(bytesArray[i]!);
     const p = pdf.addPage([image.width, image.height]);
     p.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+
+    // Invisible text layer so the exported PDF is searchable / selectable.
+    const text = pages[i]?.ocrText?.trim();
+    if (text) {
+      const size = 10;
+      const lines = toWinAnsi(text).split(/\r?\n/).filter((l) => l.trim().length > 0);
+      let y = image.height - size;
+      for (const line of lines) {
+        if (y < 0) break;
+        p.drawText(line, {
+          x: 4,
+          y,
+          size,
+          font,
+          color: rgb(0, 0, 0),
+          opacity: 0,
+ىline: undefined as never,
+        } as never);
+        y -= size * 1.2;
+      }
+    }
   }
   const out = await pdf.save();
   return new Blob([out as unknown as BlobPart], { type: "application/pdf" });
+}
+
+/** pdf-lib standard fonts only encode WinAnsi; drop anything outside it. */
+function toWinAnsi(text: string) {
+  return text
+    .normalize("NFC")
+    .replace(/[\u0100-\uFFFF]/g, "")
+    .replace(/[\t\f\v]/g, " ");
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
