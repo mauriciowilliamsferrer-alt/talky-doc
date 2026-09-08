@@ -24,6 +24,17 @@ export const dict = {
     noText: "Nenhum texto legível encontrado",
     noTextDesc:
       "Este PDF parece ser digitalizado (somente imagem). Nesta versão não há suporte a OCR.",
+    noTextScanned: "PDF digitalizado detectado",
+    noTextScannedDesc:
+      "Este PDF não contém texto selecionável — provavelmente é uma digitalização. Você pode tentar extrair o texto com OCR (Reconhecimento Óptico de Caracteres).",
+    ocrTry: "Tentar extrair com OCR",
+    ocrRunning: (done: number, total: number) => `OCR · página ${done} de ${total}…`,
+    ocrDone: "OCR concluído — texto extraído com sucesso.",
+    ocrFail: "OCR não encontrou texto",
+    ocrFailDesc:
+      "Mesmo com OCR não foi possível extrair texto legível. O documento pode estar com qualidade muito baixa ou em um idioma não suportado.",
+    ocrPartial: (pages: number) =>
+      `OCR extraiu texto de ${pages} página${pages > 1 ? "s" : ""}.`,
     readFail: "Não foi possível ler o PDF",
     readFailDesc: "O arquivo pode estar corrompido ou protegido por senha.",
     docAria: "Documento carregado",
@@ -76,6 +87,17 @@ export const dict = {
     tooLargeDesc: (mb: number) => `The limit is ${mb}MB per PDF.`,
     noText: "No readable text found",
     noTextDesc: "This PDF looks scanned (image only). OCR isn't supported in this version.",
+    noTextScanned: "Scanned PDF detected",
+    noTextScannedDesc:
+      "This PDF contains no selectable text — it's probably a scan. You can try extracting the text with OCR (Optical Character Recognition).",
+    ocrTry: "Try OCR extraction",
+    ocrRunning: (done: number, total: number) => `OCR · page ${done} of ${total}…`,
+    ocrDone: "OCR complete — text extracted successfully.",
+    ocrFail: "OCR found no text",
+    ocrFailDesc:
+      "Even with OCR we couldn't extract readable text. The document may be too low quality or in an unsupported language.",
+    ocrPartial: (pages: number) =>
+      `OCR extracted text from ${pages} page${pages > 1 ? "s" : ""}.`,
     readFail: "Couldn't read the PDF",
     readFailDesc: "The file may be corrupted or password protected.",
     docAria: "Loaded document",

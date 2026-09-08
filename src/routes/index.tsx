@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Headphones, Loader2, ScanLine, Sparkles, Upload, X } from "lucide-react";
+import { FileText, Headphones, Loader2, ScanLine, Sparkles, Upload, X, ScanText } from "lucide-react";
 import { toast } from "sonner";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { chunkForTTS, estimateMinutes, extractPdfText, MAX_PDF_BYTES } from "@/lib/pdf-text";
 import { synthesizeChunks, VOICES } from "@/lib/tts-client";
+import { recognizePage } from "@/lib/scan/ocr";
 import { cn } from "@/lib/utils";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -129,6 +130,8 @@ type Doc = {
 
 const MAX_CHUNKS = 40;
 
+type OcrFallbackState = "offer" | "running" | "failed" | null;
+
 function Index() {
   const [doc, setDoc] = useState<Doc | null>(null);
   const [voice, setVoice] = useState(VOICES[0]!.id);
@@ -137,6 +140,14 @@ function Index() {
   const [audioProgress, setAudioProgress] = useState({ done: 0, total: 0 });
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  // ── OCR fallback state ───────────────────────────────────────────────────
+  const [ocrFallback, setOcrFallback] = useState<OcrFallbackState>(null);
+  const [ocrProgress, setOcrProgress] = useState({ done: 0, total: 0 });
+  const pendingFileRef = useRef<File | null>(null);
+  const ocrAbortRef = useRef<AbortController | null>(null);
+  // ────────────────────────────────────────────────────────────────────────
+
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t, lang, setLang } = useI18n();
@@ -156,12 +167,13 @@ function Index() {
     if (search.lang !== lang) {
       void navigate({ search: lang === "pt" ? {} : { lang }, replace: true });
     }
-    // `navigate` is stable from useNavigate({ from }) — including it would cause
-    // a re-run every render on some versions; we only care about lang changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.lang, lang, setLang]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    ocrAbortRef.current?.abort();
+  }, []);
 
   const resetAudio = useCallback(() => {
     setAudioUrl((prev) => {
@@ -170,6 +182,115 @@ function Index() {
     });
   }, []);
 
+  // ── Commit text into the doc/TTS flow (shared by native extraction + OCR) ─
+  const commitText = useCallback(
+    (title: string, pages: number, text: string) => {
+      const allChunks = chunkForTTS(text);
+      if (allChunks.length > MAX_CHUNKS) {
+        toast.info(
+          lang === "pt"
+            ? `Documento longo: apenas os primeiros ${MAX_CHUNKS} blocos serão narrados.`
+            : `Long document: only the first ${MAX_CHUNKS} blocks will be narrated.`,
+        );
+      }
+      const chunks = allChunks.slice(0, MAX_CHUNKS);
+      setDoc({
+        title,
+        pages,
+        text,
+        chunks,
+        minutes: estimateMinutes(chunks.join(" ").length),
+      });
+      setStatus("idle");
+    },
+    [lang],
+  );
+
+  // ── OCR fallback runner ─────────────────────────────────────────────────
+  const runOcrFallback = useCallback(async () => {
+    const file = pendingFileRef.current;
+    if (!file) return;
+
+    setOcrFallback("running");
+    setOcrProgress({ done: 0, total: 0 });
+    resetAudio();
+    setDoc(null);
+
+    const controller = new AbortController();
+    ocrAbortRef.current = controller;
+
+    try {
+      // Re-use pdfjs (already imported in pdf-text.ts) to render pages to canvas.
+      const pdfjs = await import("pdfjs-dist");
+      const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+
+      const data = new Uint8Array(await file.arrayBuffer());
+      const pdfDoc = await pdfjs.getDocument({ data }).promise;
+      const numPages = pdfDoc.numPages;
+      setOcrProgress({ done: 0, total: numPages });
+
+      const pageTexts: string[] = [];
+
+      try {
+        for (let i = 1; i <= numPages; i++) {
+          if (controller.signal.aborted) break;
+
+          // Render the PDF page to a canvas at 2× scale for better OCR accuracy.
+          const page = await pdfDoc.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d")!;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          // Run OCR on the rendered canvas.
+          const text = await recognizePage(canvas);
+          if (text) pageTexts.push(text);
+
+          setOcrProgress({ done: i, total: numPages });
+        }
+      } finally {
+        pdfDoc.destroy();
+      }
+
+      if (controller.signal.aborted) {
+        setOcrFallback(null);
+        return;
+      }
+
+      const combined = pageTexts.join("\n\n").trim();
+
+      if (!combined || combined.length < 40) {
+        setOcrFallback("failed");
+        return;
+      }
+
+      // Success — surface partial page count if not all pages had text.
+      if (pageTexts.length < numPages) {
+        toast.info(t.ocrPartial(pageTexts.length));
+      } else {
+        toast.success(t.ocrDone);
+      }
+
+      const title = file.name.replace(/\.pdf$/i, "");
+      setOcrFallback(null);
+      pendingFileRef.current = null;
+      commitText(title, numPages, combined);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setOcrFallback(null);
+        return;
+      }
+      console.error("[OCR fallback]", err);
+      setOcrFallback("failed");
+    } finally {
+      ocrAbortRef.current = null;
+    }
+  }, [t, resetAudio, commitText]);
+
+  // ── Primary PDF handler ─────────────────────────────────────────────────
   const handleFile = useCallback(
     async (file: File) => {
       if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
@@ -183,6 +304,11 @@ function Index() {
         return;
       }
 
+      // Cancel any in-progress OCR from a previous file.
+      ocrAbortRef.current?.abort();
+      setOcrFallback(null);
+      pendingFileRef.current = null;
+
       resetAudio();
       setDoc(null);
       setStatus("extracting");
@@ -194,35 +320,21 @@ function Index() {
         );
 
         if (result.charCount < 40) {
-          toast.error(t.noText, { description: t.noTextDesc });
+          // Instead of a dead-end toast, offer OCR fallback.
           setStatus("idle");
+          pendingFileRef.current = file;
+          setOcrFallback("offer");
           return;
         }
 
-        const allChunks = chunkForTTS(result.text);
-        if (allChunks.length > MAX_CHUNKS) {
-          toast.info(
-            lang === "pt"
-              ? `Documento longo: apenas os primeiros ${MAX_CHUNKS} blocos serão narrados.`
-              : `Long document: only the first ${MAX_CHUNKS} blocks will be narrated.`,
-          );
-        }
-        const chunks = allChunks.slice(0, MAX_CHUNKS);
-        setDoc({
-          title: result.title,
-          pages: result.pages.length,
-          text: result.text,
-          chunks,
-          minutes: estimateMinutes(chunks.join(" ").length),
-        });
-        setStatus("idle");
+        commitText(result.title, result.pages.length, result.text);
       } catch (error) {
         console.error(error);
         toast.error(t.readFail, { description: t.readFailDesc });
         setStatus("idle");
       }
     },
-    [resetAudio, t],
+    [resetAudio, t, commitText],
   );
 
   const generate = useCallback(async () => {
@@ -259,7 +371,7 @@ function Index() {
     }
   }, [doc, voice, resetAudio, t]);
 
-  const busy = status !== "idle";
+  const busy = status !== "idle" || ocrFallback === "running";
 
   return (
     <main className="paper-grain min-h-dvh-safe safe-x safe-top safe-bottom">
@@ -362,6 +474,92 @@ function Index() {
             )}
           </button>
         </section>
+
+        {/* ── OCR fallback panel ──────────────────────────────────────── */}
+        {ocrFallback && (
+          <div
+            className={cn(
+              "glass mt-6 rounded-3xl p-6",
+              ocrFallback === "failed" && "border-destructive/40",
+            )}
+            role="region"
+            aria-live="polite"
+            aria-label={ocrFallback === "failed" ? t.ocrFail : t.noTextScanned}
+          >
+            <div className="flex items-start gap-4">
+              <span
+                className={cn(
+                  "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl",
+                  ocrFallback === "failed"
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-accent text-accent-foreground",
+                )}
+              >
+                <ScanText className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {ocrFallback === "failed" ? t.ocrFail : t.noTextScanned}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {ocrFallback === "failed" ? t.ocrFailDesc : t.noTextScannedDesc}
+                </p>
+
+                {ocrFallback === "running" && (
+                  <div className="mt-4">
+                    <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{t.ocrRunning(ocrProgress.done, ocrProgress.total)}</span>
+                      <span className="tabular-nums">
+                        {ocrProgress.total > 0
+                          ? `${Math.round((ocrProgress.done / ocrProgress.total) * 100)}%`
+                          : "…"}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={ocrProgress.total}
+                      aria-valuenow={ocrProgress.done}
+                      aria-label={t.ocrRunning(ocrProgress.done, ocrProgress.total)}
+                    >
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                        style={{
+                          width: `${ocrProgress.total > 0 ? (ocrProgress.done / ocrProgress.total) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {ocrFallback === "offer" && (
+                  <button
+                    type="button"
+                    onClick={() => void runOcrFallback()}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform duration-200 ease-out active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <ScanText className="size-4" />
+                    {t.ocrTry}
+                  </button>
+                )}
+
+                {ocrFallback === "failed" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOcrFallback(null);
+                      pendingFileRef.current = null;
+                    }}
+                    className="mt-4 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    {lang === "pt" ? "← Tentar outro arquivo" : "← Try another file"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {doc && (
           <section className="mt-6 space-y-6" aria-label={t.docAria}>
