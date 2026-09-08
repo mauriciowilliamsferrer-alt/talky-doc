@@ -33,8 +33,8 @@ export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
           font,
           color: rgb(0, 0, 0),
           opacity: 0,
-ىline: undefined as never,
-        } as never);
+        });
+
         y -= size * 1.2;
       }
     }
