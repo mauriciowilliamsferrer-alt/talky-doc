@@ -41,7 +41,7 @@ async function getWorker(): Promise<Worker> {
   // and cached in the browser's Cache API automatically by tesseract.js.
   _worker = await createWorker(["por", "eng"], 1, {
     // Use the CDN so we don't need to bundle the language data.
-    langPath: "https://tessdata.projectnaptha.com/4.0.0",
+    langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data@4.0.0",
     cacheMethod: "write",
     logger: () => {
       // suppress verbose internal logs

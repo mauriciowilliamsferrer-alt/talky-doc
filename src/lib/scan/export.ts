@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { ScanPage } from "./docs";
 
 async function fetchBytes(url: string) {
@@ -32,9 +32,11 @@ export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
           size,
           font,
           color: rgb(0, 0, 0),
-          opacity: 0,
+          // renderingMode 3 = invisible text (PDF spec §9.3.6).
+          // This is the correct way to embed a searchable text layer —
+          // opacity:0 can be stripped by some PDF processors.
+          renderingMode: 3,
         });
-
         y -= size * 1.2;
       }
     }
