@@ -20,6 +20,7 @@ export async function extractPdfText(
   const doc = await pdfjs.getDocument({ data }).promise;
 
   const pages: string[] = [];
+  let metaTitle = "";
   try {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
@@ -39,17 +40,16 @@ export async function extractPdfText(
       pages.push(normalize(out));
       onProgress?.(i, doc.numPages);
     }
+
+    try {
+      const meta = await doc.getMetadata();
+      const info = meta?.info as { Title?: unknown } | undefined;
+      if (typeof info?.Title === "string") metaTitle = info.Title.trim();
+    } catch {
+      /* metadados indisponíveis: usamos o nome do arquivo */
+    }
   } finally {
     void (doc as unknown as { destroy?: () => Promise<void> }).destroy?.();
-  }
-
-  let metaTitle = "";
-  try {
-    const meta = await doc.getMetadata();
-    const info = meta?.info as { Title?: unknown } | undefined;
-    if (typeof info?.Title === "string") metaTitle = info.Title.trim();
-  } catch {
-    /* metadados indisponíveis: usamos o nome do arquivo */
   }
 
 
