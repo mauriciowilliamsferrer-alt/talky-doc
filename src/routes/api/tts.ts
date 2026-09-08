@@ -38,7 +38,13 @@ export const Route = createFileRoute("/api/tts")({
 
         const apiKey = process.env["LOVABLE_API_KEY"];
         if (!apiKey) {
-          return Response.json({ error: "Serviço de narração indisponível." }, { status: 503 });
+          return Response.json(
+            {
+              error: "Serviço de narração indisponível. Configure LOVABLE_API_KEY no servidor.",
+              code: "tts_not_configured",
+            },
+            { status: 503 },
+          );
         }
 
         const upstream = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {

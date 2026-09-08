@@ -25,14 +25,17 @@ export async function synthesizeChunk(text: string, voice: string, signal?: Abor
 
   if (!res.ok) {
     let message = "Não foi possível gerar o áudio agora. Tente novamente em instantes.";
+    let code: string | undefined;
     try {
-      const body = (await res.json()) as { error?: string };
+      const body = (await res.json()) as { error?: string; code?: string };
       if (body?.error) message = body.error;
+      code = body?.code;
     } catch {
       /* resposta sem corpo JSON */
     }
-    const error = new Error(message) as Error & { status?: number };
+    const error = new Error(message) as Error & { status?: number; code?: string };
     error.status = res.status;
+    if (code) error.code = code;
     throw error;
   }
 
@@ -65,7 +68,10 @@ async function synthesizeWithRetry(text: string, voice: string, signal?: AbortSi
       return await synthesizeChunk(text, voice, signal);
     } catch (error) {
       const status = (error as { status?: number }).status;
-      const retryable = status === 429 || status === 500 || status === 502 || status === 503;
+      const code = (error as { code?: string }).code;
+      const retryable =
+        code !== "tts_not_configured" &&
+        (status === 429 || status === 500 || status === 502 || status === 503);
       if (!retryable || attempt >= delays.length || signal?.aborted) throw error;
       await sleep(delays[attempt]!, signal);
     }

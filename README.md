@@ -218,6 +218,8 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 
 Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
+The narration endpoint requires the server-side `LOVABLE_API_KEY` environment variable. Add it to `.env` before starting the development server; never prefix it with `VITE_`, because that would expose the key in the browser.
+
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
