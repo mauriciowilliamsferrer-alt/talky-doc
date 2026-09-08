@@ -222,8 +222,15 @@ function Index() {
     try {
       // Re-use pdfjs (already imported in pdf-text.ts) to render pages to canvas.
       const pdfjs = await import("pdfjs-dist");
-      const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+      let workerSrc: string;
+      try {
+        workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+      } catch {
+        workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+      }
+      if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+      }
 
       const data = new Uint8Array(await file.arrayBuffer());
       const pdfDoc = await pdfjs.getDocument({ data }).promise;
