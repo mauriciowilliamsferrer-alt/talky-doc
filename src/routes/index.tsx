@@ -259,7 +259,7 @@ function Index() {
           setOcrProgress({ done: i, total: numPages });
         }
       } finally {
-        pdfDoc.destroy();
+        void pdfDoc.cleanup();
       }
 
       if (controller.signal.aborted) {
