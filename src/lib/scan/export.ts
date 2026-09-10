@@ -1,4 +1,10 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  setTextRenderingMode,
+  TextRenderingMode,
+} from "pdf-lib";
 import type { ScanPage } from "./docs";
 
 async function fetchBytes(url: string) {
@@ -24,6 +30,10 @@ export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
       const size = 10;
       const lines = toWinAnsi(text).split(/\r?\n/).filter((l) => l.trim().length > 0);
       let y = image.height - size;
+      // Text rendering mode 3 = invisible (PDF spec §9.3.6). It is part of the
+      // graphics state, so setting it once per page applies to the drawText
+      // calls below — and it survives processors that strip opacity.
+      p.pushOperators(setTextRenderingMode(TextRenderingMode.Invisible));
       for (const line of lines) {
         if (y < 0) break;
         p.drawText(line, {
@@ -32,10 +42,6 @@ export async function buildPdf(name: string, pages: ScanPage[]): Promise<Blob> {
           size,
           font,
           color: rgb(0, 0, 0),
-          // renderingMode 3 = invisible text (PDF spec §9.3.6).
-          // This is the correct way to embed a searchable text layer —
-          // opacity:0 can be stripped by some PDF processors.
-          renderingMode: 3,
         });
         y -= size * 1.2;
       }
