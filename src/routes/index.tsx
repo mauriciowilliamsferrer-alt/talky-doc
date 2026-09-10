@@ -250,7 +250,7 @@ function Index() {
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           const ctx = canvas.getContext("2d")!;
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
 
           // Run OCR on the rendered canvas.
           const text = await recognizePage(canvas);
