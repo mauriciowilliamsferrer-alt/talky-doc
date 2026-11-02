@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, FileText, Headphones, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Headphones, Loader2, Plus, Save, Trash2, Upload } from "lucide-react";
+import { importFiles } from "@/lib/scan/import";
 import { CaptureFlow, type CapturedPage } from "@/components/scan/CaptureFlow";
 import { createDocument } from "@/lib/scan/docs";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
@@ -34,6 +35,24 @@ function ScanPage() {
   const [capturing, setCapturing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [docName, setDocName] = useState("");
+  const [importing, setImporting] = useState<string | null>(null);
+
+  const handleImport = async (list: FileList | null) => {
+    const files = list ? Array.from(list) : [];
+    if (files.length === 0) return;
+    setImporting("Preparando arquivos…");
+    try {
+      const imported = await importFiles(files, setImporting);
+      setPages((prev) => [...prev, ...imported]);
+      const noText = imported.filter((p) => !p.ocrText).length;
+      toast.success(`${imported.length} página(s) adicionada(s).`);
+      if (noText > 0) toast.warning(`Não encontramos texto em ${noText} página(s). Elas foram adicionadas mesmo assim.`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível importar o arquivo.");
+    } finally {
+      setImporting(null);
+    }
+  };
   const nameRef = useRef<HTMLInputElement>(null);
   const placeholder = defaultDocName();
 
@@ -120,7 +139,7 @@ function ScanPage() {
             <div>
               <p className="text-sm font-medium text-foreground">Nenhuma página ainda</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Toque no botão abaixo para capturar a primeira página.
+                Capture com a câmera ou envie fotos e PDFs do seu computador.
               </p>
             </div>
           </div>
@@ -153,7 +172,25 @@ function ScanPage() {
       </main>
 
       {/* Add page FAB */}
-      <div className="sticky bottom-6 flex justify-center px-4 pb-4 safe-bottom">
+      <div className="sticky bottom-6 flex flex-wrap items-center justify-center gap-3 px-4 pb-4 safe-bottom">
+        {importing && (
+          <p role="status" className="w-full text-center text-xs text-muted-foreground">{importing}</p>
+        )}
+        <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full border border-input bg-background px-5 py-3.5 text-sm font-medium text-foreground shadow-lg transition-colors hover:bg-accent ${importing ? "pointer-events-none opacity-60" : ""}`}>
+          {importing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          Enviar arquivo
+          <input
+            type="file"
+            accept="image/*,application/pdf,.pdf"
+            multiple
+            className="sr-only"
+            disabled={!!importing}
+            onChange={(e) => {
+              void handleImport(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
         <button
           type="button"
           onClick={() => setCapturing(true)}
