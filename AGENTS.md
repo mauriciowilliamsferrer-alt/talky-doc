@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- OCR language packs must be loaded from `https://tessdata.projectnaptha.com/4.0.0`; the jsDelivr `@tesseract.js-data` path returns 400 and silently kills text recognition.
+

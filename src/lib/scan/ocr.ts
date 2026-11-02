@@ -37,12 +37,13 @@ async function getWorker(): Promise<Worker> {
   const { createWorker } = await import("tesseract.js");
 
   // Load Portuguese + English — covers the most common use cases.
-  // The language packs are fetched from jsDelivr CDN on first use (~4 MB each)
+  // The language packs are fetched from the Tesseract CDN on first use (~4 MB each)
   // and cached in the browser's Cache API automatically by tesseract.js.
   _worker = await createWorker(["por", "eng"], 1, {
     // Use the CDN so we don't need to bundle the language data.
-    langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data@4.0.0",
+    langPath: "https://tessdata.projectnaptha.com/4.0.0",
     cacheMethod: "write",
+
     logger: () => {
       // suppress verbose internal logs
     },

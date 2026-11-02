@@ -15,7 +15,6 @@ import {
   Plus,
   RotateCcw,
   RotateCw,
-  Share2,
   ScanText,
   Trash2,
   X,
@@ -851,20 +850,30 @@ function ExportMenu({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-1.5">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onPdf}
         disabled={exporting}
-        className="inline-flex items-center gap-2 rounded-full border border-input px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
       >
         {exporting ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Share2 className="h-4 w-4" />
+          <Download className="h-4 w-4" />
         )}
-        <span className="hidden sm:inline">Exportar</span>
+        <span>Baixar PDF</span>
       </button>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={exporting}
+        aria-label="Mais opções de exportação"
+        className="rounded-full border border-input p-2 text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
       {open && (
         <>
           <div

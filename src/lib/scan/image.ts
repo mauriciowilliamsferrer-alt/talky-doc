@@ -167,11 +167,21 @@ export function applyFilter(source: HTMLCanvasElement, kind: FilterKind): HTMLCa
         break;
       }
     }
-    const range = Math.max(1, hi - lo);
-    for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-      const v = Math.min(255, Math.max(0, ((gray[p]! - lo) / range) * 255));
-      d[i] = d[i + 1] = d[i + 2] = v;
+    const range = hi - lo;
+    // A clean white page puts both percentiles at ~255. Stretching then maps
+    // white to black and erases the text, so fall back to plain grayscale.
+    if (range < 24) {
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        d[i] = d[i + 1] = d[i + 2] = gray[p]!;
+      }
+    } else {
+      const scale = 255 / range;
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const v = Math.min(255, Math.max(0, (gray[p]! - lo) * scale));
+        d[i] = d[i + 1] = d[i + 2] = v;
+      }
     }
+
   }
   ctx.putImageData(img, 0, 0);
   return out;
