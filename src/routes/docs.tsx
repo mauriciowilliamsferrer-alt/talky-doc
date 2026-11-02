@@ -256,8 +256,9 @@ function DocsPage() {
                 <Link
                   to="/doc/$id"
                   params={{ id: doc.id }}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-accent/50"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 pr-36 transition-colors hover:bg-accent/50"
                 >
+
                   {/* Thumbnail */}
                   <div className="flex h-14 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {doc.thumbnail ? (
@@ -305,14 +306,16 @@ function DocsPage() {
                   }}
                   disabled={downloadingId === doc.id}
                   aria-label={`Baixar ${doc.name} em PDF`}
-                  className="absolute right-20 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  className="absolute right-20 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                 >
                   {downloadingId === doc.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
+                  PDF
                 </button>
+
 
                 {/* Delete button (always visible) */}
                 <button
