@@ -74,7 +74,7 @@ export async function importFiles(
       const canvases = await pdfToCanvases(file, (d, t) => onProgress(`Abrindo página ${d} de ${t}…`));
       for (let i = 0; i < canvases.length; i++) {
         onProgress(`Reconhecendo texto: página ${i + 1} de ${canvases.length}…`);
-        pages.push(await canvasToPage(canvases[i]));
+        pages.push(await canvasToPage(canvases[i]!));
       }
     } else if (file.type.startsWith("image/")) {
       onProgress(`Reconhecendo texto de ${file.name}…`);
